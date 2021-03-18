@@ -7,9 +7,8 @@ import sys
 def main():
     """Run administrative tasks."""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "flow_results.settings")
-    if sys.argv[1] in {"test", "runserver", "migrate"}:
-        os.environ.setdefault("DEBUG", "true")
-        os.environ.setdefault("SECRET_KEY", "test")
+    os.environ.setdefault("DEBUG", "true")
+    os.environ.setdefault("SECRET_KEY", "test")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
