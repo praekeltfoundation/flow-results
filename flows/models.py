@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -44,3 +45,33 @@ class FlowQuestion(models.Model):
 
     class Meta:
         unique_together = [["flow_id", "id"]]
+
+    def clean(self):
+        if self.type == self.Type.SELECT_ONE:
+            if "choices" not in self.type_options:
+                raise ValidationError(
+                    {"type_options": "'choices' is required for select_one type"}
+                )
+            if not isinstance(self.type_options["choices"], list):
+                raise ValidationError({"type_options": "'choices' must be a list"})
+
+        elif self.type == self.Type.SELECT_MANY:
+            if "choices" not in self.type_options:
+                raise ValidationError(
+                    {"type_options": "'choices' is required for select_many type"}
+                )
+            if not isinstance(self.type_options["choices"], list):
+                raise ValidationError({"type_options": "'choices' must be a list"})
+
+        elif self.type == self.Type.NUMERIC:
+            if "range" in self.type_options:
+                if not isinstance(self.type_options["range"], list):
+                    raise ValidationError({"type_options": "'range' must be a list"})
+                if not all(isinstance(v, int) for v in self.type_options["range"]):
+                    raise ValidationError(
+                        {"type_options": "'range' can only contain integers"}
+                    )
+                if not len(self.type_options["range"]) == 2:
+                    raise ValidationError(
+                        {"type_options": "'range' must contain exactly 2 items"}
+                    )
