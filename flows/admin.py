@@ -10,6 +10,6 @@ class FlowQuestionInline(admin.TabularInline):
 @admin.register(Flow)
 class FlowAdmin(admin.ModelAdmin):
     date_hierarchy = "modified"
-    fields = ("id", "name", "version", "title", "language")
+    fields = ("id", "name", "version", "title", "language", "created", "modified")
     list_display = ("name", "title", "language", "modified")
     inlines = [FlowQuestionInline]

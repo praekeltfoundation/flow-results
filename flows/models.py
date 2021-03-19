@@ -3,11 +3,12 @@ from uuid import uuid4
 from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator, RegexValidator
 from django.db import models
+from django.utils import timezone
 
 
 class Flow(models.Model):
     class Version(models.TextChoices):
-        V1_0_0_RC1 = "1.0.0-rc.1"
+        V1_0_0_RC1 = "1.0.0-rc1"
 
     id = models.UUIDField(primary_key=True, default=uuid4)
     name = models.CharField(
@@ -22,8 +23,8 @@ class Flow(models.Model):
         ],
     )
     version = models.CharField(max_length=255, choices=Version.choices)
-    created = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
+    created = models.DateTimeField(default=timezone.now)
+    modified = models.DateTimeField(default=timezone.now)
     title = models.CharField(max_length=255, blank=True, default="")
     language = models.CharField(
         max_length=3, blank=True, default="", validators=[MinLengthValidator(3)]

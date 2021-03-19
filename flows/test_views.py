@@ -188,3 +188,187 @@ class FlowViewSetTests(APITestCase):
 
         self.assertEqual(Flow.objects.count(), 0)
         self.assertEqual(FlowQuestion.objects.count(), 0)
+
+    def test_success(self):
+        """
+        Uses the example in the docs to test that the endpoint works correctly
+        """
+        url = reverse("flow-list")
+        response = self.client.post(
+            url,
+            {
+                "data": {
+                    "type": "packages",
+                    "attributes": {
+                        "profile": "flow-results-package",
+                        "name": "standard_test_survey",
+                        "flow-results-specification": "1.0.0-rc1",
+                        "created": "2015-11-26 02:59:24+00:00",
+                        "modified": "2017-12-04 15:54:44+00:00",
+                        "id": None,
+                        "title": "Standard Test Survey",
+                        "resources": [
+                            {
+                                "path": None,
+                                "api-data-url": None,
+                                "mediatype": "application/json",
+                                "encoding": "utf-8",
+                                "schema": {
+                                    "language": "eng",
+                                    "fields": [
+                                        {
+                                            "name": "timestamp",
+                                            "title": "Timestamp",
+                                            "type": "datetime",
+                                        },
+                                        {
+                                            "name": "row_id",
+                                            "title": "Row ID",
+                                            "type": "string",
+                                        },
+                                        {
+                                            "name": "contact_id",
+                                            "title": "Contact ID",
+                                            "type": "string",
+                                        },
+                                        {
+                                            "name": "session_id",
+                                            "title": "Session ID",
+                                            "type": "string",
+                                        },
+                                        {
+                                            "name": "question_id",
+                                            "title": "Question ID",
+                                            "type": "string",
+                                        },
+                                        {
+                                            "name": "response_id",
+                                            "title": "Response ID",
+                                            "type": "any",
+                                        },
+                                        {
+                                            "name": "response_metadata",
+                                            "title": "Response Metadata",
+                                            "type": "object",
+                                        },
+                                    ],
+                                    "questions": {
+                                        "1448506769745_42": {
+                                            "type": "select_one",
+                                            "label": "Are you a woman or a man?",
+                                            "type_options": {
+                                                "choices": ["Woman", "Man", "Other"]
+                                            },
+                                        },
+                                        "1448506773018_89": {
+                                            "type": "numeric",
+                                            "label": "How old are you? "
+                                            "Please enter your age in years.",
+                                            "type_options": {"range": [-99, 99]},
+                                        },
+                                        "1448506774930_30": {
+                                            "type": "open",
+                                            "label": "What was the best thing that "
+                                            "happened to you today?",
+                                            "type_options": {},
+                                        },
+                                    },
+                                },
+                            }
+                        ],
+                    },
+                }
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        [flow] = Flow.objects.all()
+        self.maxDiff = None
+        self.assertEqual(
+            response.json(),
+            {
+                "data": {
+                    "type": "packages",
+                    "id": str(flow.id),
+                    "attributes": {
+                        "profile": "flow-results-package",
+                        "name": "standard_test_survey",
+                        "flow-results-specification": "1.0.0-rc1",
+                        "created": "2015-11-26T02:59:24+00:00",
+                        "modified": "2017-12-04T15:54:44+00:00",
+                        "id": str(flow.id),
+                        "title": "Standard Test Survey",
+                        "resources": [
+                            {
+                                "path": None,
+                                "api-data-url": None,
+                                "mediatype": "application/json",
+                                "encoding": "utf-8",
+                                "schema": {
+                                    "language": "eng",
+                                    "fields": [
+                                        {
+                                            "name": "timestamp",
+                                            "title": "Timestamp",
+                                            "type": "datetime",
+                                        },
+                                        {
+                                            "name": "row_id",
+                                            "title": "Row ID",
+                                            "type": "string",
+                                        },
+                                        {
+                                            "name": "contact_id",
+                                            "title": "Contact ID",
+                                            "type": "string",
+                                        },
+                                        {
+                                            "name": "session_id",
+                                            "title": "Session ID",
+                                            "type": "string",
+                                        },
+                                        {
+                                            "name": "question_id",
+                                            "title": "Question ID",
+                                            "type": "string",
+                                        },
+                                        {
+                                            "name": "response_id",
+                                            "title": "Response ID",
+                                            "type": "any",
+                                        },
+                                        {
+                                            "name": "response_metadata",
+                                            "title": "Response Metadata",
+                                            "type": "object",
+                                        },
+                                    ],
+                                    "questions": {
+                                        "1448506769745_42": {
+                                            "type": "select_one",
+                                            "label": "Are you a woman or a man?",
+                                            "type_options": {
+                                                "choices": ["Woman", "Man", "Other"]
+                                            },
+                                        },
+                                        "1448506773018_89": {
+                                            "type": "numeric",
+                                            "label": "How old are you? Please enter "
+                                            "your age in years.",
+                                            "type_options": {"range": [-99, 99]},
+                                        },
+                                        "1448506774930_30": {
+                                            "type": "open",
+                                            "label": "What was the best thing that "
+                                            "happened to you today?",
+                                            "type_options": {},
+                                        },
+                                    },
+                                },
+                            }
+                        ],
+                    },
+                    "links": {"self": None},
+                }
+            },
+        )
