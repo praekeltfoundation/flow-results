@@ -44,6 +44,7 @@ setup(
             "black==20.8b1",
             "isort==5.7.0",
             "flake8==3.9.0",
+            "coverage==5.5",
         ],
     },
 )
