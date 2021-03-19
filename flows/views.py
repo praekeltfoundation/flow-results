@@ -2,13 +2,25 @@ from uuid import uuid4
 
 from django.core.exceptions import ValidationError
 from django.db.transaction import atomic
+from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 
 from flows.models import Flow, FlowQuestion
 from flows.serializers import FlowSerializer
+
+SCHEMA_FIELDS = [
+    {"name": "timestamp", "title": "Timestamp", "type": "datetime"},
+    {"name": "row_id", "title": "Row ID", "type": "string"},
+    {"name": "contact_id", "title": "Contact ID", "type": "string"},
+    {"name": "session_id", "title": "Session ID", "type": "string"},
+    {"name": "question_id", "title": "Question ID", "type": "string"},
+    {"name": "response_id", "title": "Response ID", "type": "any"},
+    {"name": "response_metadata", "title": "Response Metadata", "type": "object"},
+]
 
 
 def flatten_errors(error):
@@ -102,43 +114,7 @@ class FlowViewSet(viewsets.ViewSet):
                                 "encoding": "utf-8",
                                 "schema": {
                                     "language": flow.language,
-                                    "fields": [
-                                        {
-                                            "name": "timestamp",
-                                            "title": "Timestamp",
-                                            "type": "datetime",
-                                        },
-                                        {
-                                            "name": "row_id",
-                                            "title": "Row ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "contact_id",
-                                            "title": "Contact ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "session_id",
-                                            "title": "Session ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "question_id",
-                                            "title": "Question ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "response_id",
-                                            "title": "Response ID",
-                                            "type": "any",
-                                        },
-                                        {
-                                            "name": "response_metadata",
-                                            "title": "Response Metadata",
-                                            "type": "object",
-                                        },
-                                    ],
+                                    "fields": SCHEMA_FIELDS,
                                     "questions": {
                                         question.id: {
                                             "type": question.type,
@@ -153,8 +129,9 @@ class FlowViewSet(viewsets.ViewSet):
                         ],
                     },
                     "links": {
-                        # TODO: Link to flow detail once that view exists
-                        "self": None
+                        "self": reverse(
+                            "flow-detail", args=[str(flow.id)], request=request
+                        )
                     },
                 }
             },
@@ -187,5 +164,61 @@ class FlowViewSet(viewsets.ViewSet):
                     }
                     for flow in page
                 ],
+            }
+        )
+
+    def retrieve(self, request, pk=None):
+        flow = get_object_or_404(
+            Flow.objects.prefetch_related("flowquestion_set"), id=pk
+        )
+        return Response(
+            {
+                "links": {
+                    "self": reverse(
+                        "flow-detail", args=[str(flow.id)], request=request
+                    ),
+                },
+                "data": {
+                    "type": "packages",
+                    "id": str(flow.id),
+                    "attributes": {
+                        "profile": "flow-results-package",
+                        "name": flow.name,
+                        "flow-results-specification": flow.version,
+                        "created": flow.created.isoformat(),
+                        "modified": flow.modified.isoformat(),
+                        "id": str(flow.id),
+                        "title": flow.title,
+                        "resources": [
+                            {
+                                "path": None,
+                                # TODO: Once we have the results endpoint, put it here
+                                "api-data-url": None,
+                                "mediatype": "application/json",
+                                "encoding": "utf-8",
+                                "schema": {
+                                    "language": flow.language,
+                                    "fields": SCHEMA_FIELDS,
+                                    "questions": {
+                                        question.id: {
+                                            "type": question.type,
+                                            "label": question.label,
+                                            "type_options": question.type_options,
+                                        }
+                                        for question in flow.flowquestion_set.all()
+                                    },
+                                },
+                            }
+                        ],
+                    },
+                },
+                "relationships": {
+                    "responses": {
+                        "links": {
+                            # TODO: Once we have the results endpoint, put it here
+                            "related": None
+                        }
+                    }
+                },
             }
         )

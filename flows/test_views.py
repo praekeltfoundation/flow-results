@@ -1,11 +1,12 @@
 from django.conf import settings
 from django.contrib.auth.models import Permission, User
-from django.urls import reverse
+from django.shortcuts import reverse
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from flows.models import Flow, FlowQuestion
+from flows.views import SCHEMA_FIELDS
 
 
 class FlowViewSetTests(APITestCase):
@@ -218,43 +219,7 @@ class FlowViewSetTests(APITestCase):
                                 "encoding": "utf-8",
                                 "schema": {
                                     "language": "eng",
-                                    "fields": [
-                                        {
-                                            "name": "timestamp",
-                                            "title": "Timestamp",
-                                            "type": "datetime",
-                                        },
-                                        {
-                                            "name": "row_id",
-                                            "title": "Row ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "contact_id",
-                                            "title": "Contact ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "session_id",
-                                            "title": "Session ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "question_id",
-                                            "title": "Question ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "response_id",
-                                            "title": "Response ID",
-                                            "type": "any",
-                                        },
-                                        {
-                                            "name": "response_metadata",
-                                            "title": "Response Metadata",
-                                            "type": "object",
-                                        },
-                                    ],
+                                    "fields": SCHEMA_FIELDS,
                                     "questions": {
                                         "1448506769745_42": {
                                             "type": "select_one",
@@ -286,7 +251,6 @@ class FlowViewSetTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         [flow] = Flow.objects.all()
-        self.maxDiff = None
         self.assertEqual(
             response.json(),
             {
@@ -309,43 +273,7 @@ class FlowViewSetTests(APITestCase):
                                 "encoding": "utf-8",
                                 "schema": {
                                     "language": "eng",
-                                    "fields": [
-                                        {
-                                            "name": "timestamp",
-                                            "title": "Timestamp",
-                                            "type": "datetime",
-                                        },
-                                        {
-                                            "name": "row_id",
-                                            "title": "Row ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "contact_id",
-                                            "title": "Contact ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "session_id",
-                                            "title": "Session ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "question_id",
-                                            "title": "Question ID",
-                                            "type": "string",
-                                        },
-                                        {
-                                            "name": "response_id",
-                                            "title": "Response ID",
-                                            "type": "any",
-                                        },
-                                        {
-                                            "name": "response_metadata",
-                                            "title": "Response Metadata",
-                                            "type": "object",
-                                        },
-                                    ],
+                                    "fields": SCHEMA_FIELDS,
                                     "questions": {
                                         "1448506769745_42": {
                                             "type": "select_one",
@@ -371,7 +299,10 @@ class FlowViewSetTests(APITestCase):
                             }
                         ],
                     },
-                    "links": {"self": None},
+                    "links": {
+                        "self": "http://testserver"
+                        f"{reverse('flow-detail', args=[str(flow.id)])}"
+                    },
                 }
             },
         )
@@ -417,3 +348,73 @@ class FlowViewSetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.json()["data"]), 1)
         self.assertTrue("?cursor=" in response.json()["links"]["previous"])
+
+    def test_detail_view(self):
+        flow = Flow.objects.create(
+            name="test-flow", title="Test Flow", version=Flow.Version.V1_0_0_RC1
+        )
+        flow.flowquestion_set.create(
+            id="q1",
+            label="Question 1",
+            type=FlowQuestion.Type.SELECT_ONE,
+            type_options={"choices": ["1", "2"]},
+        )
+        flow.flowquestion_set.create(
+            id="q2", label="Question 2", type=FlowQuestion.Type.OPEN
+        )
+        url = reverse("flow-detail", args=[flow.id])
+        # Count queries to ensure we're not doing n + 1 queries
+        # 1: validate auth token
+        # 2: validate user permissions
+        # 3: validate user group permissions
+        # 4: get flow by ID
+        # 5: get all questions for flow
+        with self.assertNumQueries(5):
+            response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.json(),
+            {
+                "links": {
+                    "self": f"http://testserver{reverse('flow-detail', args=[flow.id])}"
+                },
+                "data": {
+                    "id": str(flow.id),
+                    "type": "packages",
+                    "attributes": {
+                        "id": str(flow.id),
+                        "flow-results-specification": flow.version.value,
+                        "name": flow.name,
+                        "profile": "flow-results-package",
+                        "created": flow.created.isoformat(),
+                        "modified": flow.modified.isoformat(),
+                        "title": flow.title,
+                        "resources": [
+                            {
+                                "api-data-url": None,
+                                "encoding": "utf-8",
+                                "mediatype": "application/json",
+                                "path": None,
+                                "schema": {
+                                    "language": "",
+                                    "fields": SCHEMA_FIELDS,
+                                    "questions": {
+                                        "q1": {
+                                            "label": "Question 1",
+                                            "type": FlowQuestion.Type.SELECT_ONE.value,
+                                            "type_options": {"choices": ["1", "2"]},
+                                        },
+                                        "q2": {
+                                            "label": "Question 2",
+                                            "type": FlowQuestion.Type.OPEN.value,
+                                            "type_options": {},
+                                        },
+                                    },
+                                },
+                            }
+                        ],
+                    },
+                },
+                "relationships": {"responses": {"links": {"related": None}}},
+            },
+        )
