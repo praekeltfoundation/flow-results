@@ -10,7 +10,8 @@ class Flow(models.Model):
     class Version(models.TextChoices):
         V1_0_0_RC1 = "1.0.0-rc1"
 
-    id = models.UUIDField(primary_key=True, default=uuid4)
+    primary_key = models.AutoField(primary_key=True, editable=False)
+    id = models.UUIDField(default=uuid4, unique=True)
     name = models.CharField(
         max_length=255,
         blank=True,

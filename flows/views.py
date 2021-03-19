@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db.transaction import atomic
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 
 from flows.models import Flow, FlowQuestion
@@ -158,4 +159,33 @@ class FlowViewSet(viewsets.ViewSet):
                 }
             },
             status=status.HTTP_201_CREATED,
+        )
+
+    def list(self, request):
+        class PrimaryKeyPagination(CursorPagination):
+            ordering = "primary_key"
+
+        paginator = PrimaryKeyPagination()
+        page = paginator.paginate_queryset(Flow.objects.all(), self.request, view=self)
+        return Response(
+            {
+                "links": {
+                    "self": request.build_absolute_uri(),
+                    "next": paginator.get_next_link(),
+                    "previous": paginator.get_previous_link(),
+                },
+                "data": [
+                    {
+                        "type": "packages",
+                        "id": flow.id,
+                        "attributes": {
+                            "title": flow.title,
+                            "name": flow.name,
+                            "created": flow.created.isoformat(),
+                            "modified": flow.modified.isoformat(),
+                        },
+                    }
+                    for flow in page
+                ],
+            }
         )

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import Permission, User
 from django.urls import reverse
 from rest_framework import status
@@ -10,6 +11,7 @@ from flows.models import Flow, FlowQuestion
 class FlowViewSetTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user("test")
+        self.user.user_permissions.add(Permission.objects.get(codename="view_flow"))
         self.user.user_permissions.add(Permission.objects.get(codename="add_flow"))
         self.token = Token.objects.create(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
@@ -28,6 +30,7 @@ class FlowViewSetTests(APITestCase):
         You need permission to access the endpoint
         """
         self.user.user_permissions.remove(Permission.objects.get(codename="add_flow"))
+        self.user.user_permissions.remove(Permission.objects.get(codename="view_flow"))
         url = reverse("flow-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -372,3 +375,45 @@ class FlowViewSetTests(APITestCase):
                 }
             },
         )
+
+    def test_list_view_rendering(self):
+        flow = Flow.objects.create(name="test-flow", title="Test Flow")
+        url = reverse("flow-list")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.json(),
+            {
+                "links": {
+                    "next": None,
+                    "previous": None,
+                    "self": "http://testserver/api/v1/flow-results/packages/",
+                },
+                "data": [
+                    {
+                        "id": str(flow.id),
+                        "type": "packages",
+                        "attributes": {
+                            "created": flow.created.isoformat(),
+                            "modified": flow.modified.isoformat(),
+                            "name": "test-flow",
+                            "title": "Test Flow",
+                        },
+                    }
+                ],
+            },
+        )
+
+    def test_list_view_pagination(self):
+        for _ in range(settings.REST_FRAMEWORK["PAGE_SIZE"] + 1):
+            Flow.objects.create(name="test-flow", title="Test Flow")
+        url = reverse("flow-list")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()["data"]), 100)
+        self.assertTrue("?cursor=" in response.json()["links"]["next"])
+
+        response = self.client.get(response.json()["links"]["next"])
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()["data"]), 1)
+        self.assertTrue("?cursor=" in response.json()["links"]["previous"])
