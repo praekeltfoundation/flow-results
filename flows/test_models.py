@@ -4,6 +4,28 @@ from django.test import TestCase
 from flows.models import Flow, FlowQuestion
 
 
+class FlowTests(TestCase):
+    def test_name_validation(self):
+        """
+        `name` should only be lowercase alphanumeric, with '.', '-', and '_'
+        """
+        f = Flow(version=Flow.Version.V1_0_0_RC1, name="TestInvalid")
+        with self.assertRaises(ValidationError) as e:
+            f.full_clean()
+        self.assertEqual(
+            e.exception.message_dict,
+            {
+                "name": [
+                    "can only contain lowercase, alphanumeric characters and "
+                    "'-', '_', '.'"
+                ]
+            },
+        )
+
+        f.name = "valid_name-1.0"
+        f.full_clean()
+
+
 class FlowQuestionTests(TestCase):
     def test_clean_select_one(self):
         """

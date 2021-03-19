@@ -2,6 +2,11 @@
 
 An implementation of the [flow results API](https://floip.gitbook.io/flow-results-specification/)
 
+## Usage
+Have a look at the [API specification documentation](https://floip.gitbook.io/flow-results-specification/api-specification) for documentation of the API endpoints.
+
+Users, authentication tokens, and permissions can be managed through the django admin page, available at `/admin/`. To create the first admin user, run `python manage.py createsuperuser`.
+
 ## Running in Production
 There is a [docker image](https://hub.docker.com/r/praekeltfoundation/flow-results) that can be used to easily run this service. It uses the following environment variables for configuration:
 

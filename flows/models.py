@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from django.core.exceptions import ValidationError
+from django.core.validators import MinLengthValidator, RegexValidator
 from django.db import models
 
 
@@ -9,12 +10,24 @@ class Flow(models.Model):
         V1_0_0_RC1 = "1.0.0-rc.1"
 
     id = models.UUIDField(primary_key=True, default=uuid4)
-    name = models.CharField(max_length=255, blank=True, default="")
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        validators=[
+            RegexValidator(
+                r"^[a-z0-9-\._]*$",
+                "can only contain lowercase, alphanumeric characters and '-', '_', '.'",
+            )
+        ],
+    )
     version = models.CharField(max_length=255, choices=Version.choices)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
     title = models.CharField(max_length=255, blank=True, default="")
-    language = models.CharField(max_length=3, blank=True, default="")
+    language = models.CharField(
+        max_length=3, blank=True, default="", validators=[MinLengthValidator(3)]
+    )
 
     class Meta:
         ordering = ["modified"]
