@@ -34,12 +34,17 @@ setup(
         "Topic :: Communications :: Chat",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
     ],
-    install_requires=["django==3.1.7", "django-environ==0.4.5"],
+    install_requires=[
+        "django==3.1.7",
+        "django-environ==0.4.5",
+        "djangorestframework==3.12.2",
+    ],
     extras_require={
         "dev": [
             "black==20.8b1",
             "isort==5.7.0",
             "flake8==3.9.0",
+            "coverage==5.5",
         ],
     },
 )
