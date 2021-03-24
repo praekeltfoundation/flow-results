@@ -1,9 +1,12 @@
+from datetime import date, datetime, time
 from uuid import uuid4
 
 from django.core.exceptions import ValidationError
-from django.core.validators import MinLengthValidator, RegexValidator
+from django.core.validators import MaxValueValidator, MinLengthValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
+
+from flows.types import URL
 
 
 class Flow(models.Model):
@@ -90,3 +93,122 @@ class FlowQuestion(models.Model):
                     raise ValidationError(
                         {"type_options": "'range' must contain exactly 2 items"}
                     )
+
+
+class FlowResponse(models.Model):
+    # Some of the fields can have multiple types, so we use a JSON field to maintain the
+    # type. But there are some types that JSON doesn't support, like datetime, so we
+    # also maintain a type field, so that we know how to deserialize the value
+    class Type(models.IntegerChoices):
+        STRING = 0
+        INTEGER = 1
+        ARRAY_OF_STRING = 2
+        FLOAT = 3
+        URL = 4
+        ARRAY_OF_FLOAT = 5
+        DATETIME = 6
+        DATE = 7
+        TIME = 8
+
+    question = models.ForeignKey(FlowQuestion, models.CASCADE)
+    timestamp = models.DateTimeField(default=timezone.now)
+    row_id_type = models.PositiveSmallIntegerField(
+        choices=Type.choices,
+        validators=[MaxValueValidator(Type.INTEGER, "must be string or integer")],
+    )
+    row_id_value = models.JSONField()
+    contact_id_type = models.PositiveSmallIntegerField(
+        choices=Type.choices,
+        validators=[MaxValueValidator(Type.INTEGER, "must be string or integer")],
+    )
+    contact_id_value = models.JSONField()
+    session_id_type = models.PositiveSmallIntegerField(
+        choices=Type.choices,
+        validators=[MaxValueValidator(Type.INTEGER, "must be string or integer")],
+    )
+    session_id_value = models.JSONField()
+    response_type = models.PositiveSmallIntegerField(choices=Type.choices)
+    response_value = models.JSONField(blank=True)
+    response_metadata = models.JSONField(blank=True)
+
+    class Meta:
+        unique_together = [["question_id", "row_id_value"]]
+        indexes = [models.Index(fields=["row_id_value"])]
+
+    @staticmethod
+    def _deserialize(type_, value):
+        if type_ == FlowResponse.Type.URL:
+            return URL(value)
+        elif type_ == FlowResponse.Type.DATETIME:
+            return datetime.fromisoformat(value)
+        elif type_ == FlowResponse.Type.DATE:
+            return date.fromisoformat(value)
+        elif type_ == FlowResponse.Type.TIME:
+            return time.fromisoformat(value)
+        return value
+
+    @staticmethod
+    def _get_type(value):
+        if isinstance(value, URL):
+            # Since URLs are just strings, check it before string
+            return FlowResponse.Type.URL
+        elif isinstance(value, str):
+            return FlowResponse.Type.STRING
+        elif isinstance(value, int):
+            return FlowResponse.Type.INTEGER
+        elif isinstance(value, float):
+            return FlowResponse.Type.FLOAT
+        elif isinstance(value, datetime):
+            return FlowResponse.Type.DATETIME
+        elif isinstance(value, date):
+            return FlowResponse.Type.DATE
+        elif isinstance(value, time):
+            return FlowResponse.Type.TIME
+        elif isinstance(value, list):
+            if all(isinstance(item, str) for item in value):
+                return FlowResponse.Type.ARRAY_OF_STRING
+            elif all(isinstance(item, float) for item in value):
+                return FlowResponse.Type.ARRAY_OF_FLOAT
+
+    @staticmethod
+    def _serialize(value):
+        type_ = FlowResponse._get_type(value)
+        if type_ in (
+            FlowResponse.Type.DATETIME,
+            FlowResponse.Type.DATE,
+            FlowResponse.Type.TIME,
+        ):
+            return type_, value.isoformat()
+        return type_, value
+
+    @property
+    def row_id(self):
+        return self._deserialize(self.row_id_type, self.row_id_value)
+
+    @row_id.setter
+    def row_id(self, value):
+        self.row_id_type, self.row_id_value = self._serialize(value)
+
+    @property
+    def contact_id(self):
+        return self._deserialize(self.contact_id_type, self.contact_id_value)
+
+    @contact_id.setter
+    def contact_id(self, value):
+        self.contact_id_type, self.contact_id_value = self._serialize(value)
+
+    @property
+    def session_id(self):
+        return self._deserialize(self.session_id_type, self.session_id_value)
+
+    @session_id.setter
+    def session_id(self, value):
+        self.session_id_type, self.session_id_value = self._serialize(value)
+
+    @property
+    def response(self):
+        return self._deserialize(self.response_type, self.response_value)
+
+    @response.setter
+    def response(self, value):
+        self.response_type, self.response_value = self._serialize(value)
