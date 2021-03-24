@@ -179,7 +179,7 @@ class FlowViewSetTests(APITestCase):
                                 "schema": {
                                     "questions": {
                                         "test-id": {
-                                            "type_options": ["'choices' must be a list"]
+                                            "type_options": ["choices must be an array"]
                                         }
                                     }
                                 }

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date, datetime, time
 from uuid import uuid4
 
@@ -64,35 +65,36 @@ class FlowQuestion(models.Model):
     class Meta:
         unique_together = [["flow_id", "id"]]
 
+    @staticmethod
+    def validate_type_options(errors, type_, type_options):
+        if type_ == FlowQuestion.Type.SELECT_ONE:
+            if "choices" not in type_options:
+                errors["type_options"].append("choices is required for select_one type")
+            elif not isinstance(type_options["choices"], list):
+                errors["type_options"].append("choices must be an array")
+
+        elif type_ == FlowQuestion.Type.SELECT_MANY:
+            if "choices" not in type_options:
+                errors["type_options"].append(
+                    "choices is required for select_many type"
+                )
+            elif not isinstance(type_options["choices"], list):
+                errors["type_options"].append("choices must be an array")
+
+        elif type_ == FlowQuestion.Type.NUMERIC:
+            if "range" in type_options:
+                if not isinstance(type_options["range"], list):
+                    errors["type_options"].append("range must be an array")
+                elif not all(isinstance(v, int) for v in type_options["range"]):
+                    errors["type_options"].append("range can only contain integers")
+                elif not len(type_options["range"]) == 2:
+                    errors["type_options"].append("range must contain exactly 2 items")
+
     def clean(self):
-        if self.type == self.Type.SELECT_ONE:
-            if "choices" not in self.type_options:
-                raise ValidationError(
-                    {"type_options": "'choices' is required for select_one type"}
-                )
-            if not isinstance(self.type_options["choices"], list):
-                raise ValidationError({"type_options": "'choices' must be a list"})
-
-        elif self.type == self.Type.SELECT_MANY:
-            if "choices" not in self.type_options:
-                raise ValidationError(
-                    {"type_options": "'choices' is required for select_many type"}
-                )
-            if not isinstance(self.type_options["choices"], list):
-                raise ValidationError({"type_options": "'choices' must be a list"})
-
-        elif self.type == self.Type.NUMERIC:
-            if "range" in self.type_options:
-                if not isinstance(self.type_options["range"], list):
-                    raise ValidationError({"type_options": "'range' must be a list"})
-                if not all(isinstance(v, int) for v in self.type_options["range"]):
-                    raise ValidationError(
-                        {"type_options": "'range' can only contain integers"}
-                    )
-                if not len(self.type_options["range"]) == 2:
-                    raise ValidationError(
-                        {"type_options": "'range' must contain exactly 2 items"}
-                    )
+        errors = defaultdict(list)
+        self.validate_type_options(errors, self.type, self.type_options)
+        if errors:
+            raise ValidationError(errors)
 
 
 class FlowResponse(models.Model):

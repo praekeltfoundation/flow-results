@@ -43,7 +43,7 @@ class FlowQuestionTests(TestCase):
             q.full_clean()
         self.assertEqual(
             e.exception.message_dict,
-            {"type_options": ["'choices' is required for select_one type"]},
+            {"type_options": ["choices is required for select_one type"]},
         )
 
         q.type_options["choices"] = "choice"
@@ -52,7 +52,7 @@ class FlowQuestionTests(TestCase):
             q.full_clean()
         self.assertEqual(
             e.exception.message_dict,
-            {"type_options": ["'choices' must be a list"]},
+            {"type_options": ["choices must be an array"]},
         )
 
     def test_clean_select_many(self):
@@ -68,7 +68,7 @@ class FlowQuestionTests(TestCase):
             q.full_clean()
         self.assertEqual(
             e.exception.message_dict,
-            {"type_options": ["'choices' is required for select_many type"]},
+            {"type_options": ["choices is required for select_many type"]},
         )
 
         q.type_options["choices"] = "choice"
@@ -77,7 +77,7 @@ class FlowQuestionTests(TestCase):
             q.full_clean()
         self.assertEqual(
             e.exception.message_dict,
-            {"type_options": ["'choices' must be a list"]},
+            {"type_options": ["choices must be an array"]},
         )
 
         q.type_options["choices"] = ["choice1", "choice2"]
@@ -98,7 +98,7 @@ class FlowQuestionTests(TestCase):
             q.full_clean()
         self.assertEqual(
             e.exception.message_dict,
-            {"type_options": ["'range' must be a list"]},
+            {"type_options": ["range must be an array"]},
         )
 
         q.type_options["range"] = []
@@ -106,7 +106,7 @@ class FlowQuestionTests(TestCase):
             q.full_clean()
         self.assertEqual(
             e.exception.message_dict,
-            {"type_options": ["'range' must contain exactly 2 items"]},
+            {"type_options": ["range must contain exactly 2 items"]},
         )
         q.type_options["range"] = ["a", "b"]
 
@@ -114,7 +114,7 @@ class FlowQuestionTests(TestCase):
             q.full_clean()
         self.assertEqual(
             e.exception.message_dict,
-            {"type_options": ["'range' can only contain integers"]},
+            {"type_options": ["range can only contain integers"]},
         )
 
         q.type_options["range"] = [5, 10]
