@@ -2,15 +2,17 @@ from uuid import uuid4
 
 from django.core.exceptions import ValidationError
 from django.db.transaction import atomic
+from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from flows.models import Flow, FlowQuestion
-from flows.serializers import FlowSerializer
+from flows.models import Flow, FlowQuestion, FlowResponse
+from flows.serializers import FlowResponsesSerializer, FlowSerializer
 
 SCHEMA_FIELDS = [
     {"name": "timestamp", "title": "Timestamp", "type": "datetime"},
@@ -222,3 +224,73 @@ class FlowViewSet(viewsets.ViewSet):
                 },
             }
         )
+
+
+class FlowResponseViewSet(viewsets.ViewSet):
+    queryset = FlowResponse.objects.all()
+
+    def create(self, request, parent_lookup_question__flow=None):
+        serializer = FlowResponsesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            flow = Flow.objects.get(id=parent_lookup_question__flow)
+        except (Flow.DoesNotExist, ValidationError):
+            raise NotFound()
+        response_data = serializer.data["data"]["attributes"]["responses"]
+        errors = {}
+        answers = []
+        questions = {question.id: question for question in flow.flowquestion_set.all()}
+        for i, response in enumerate(response_data):
+            (
+                timestamp,
+                row_id,
+                contact_id,
+                session_id,
+                question_id,
+                response_id,
+                response_metadata,
+            ) = response
+            try:
+                question = questions[question_id]
+            except KeyError:
+                errors[i] = {
+                    "question_id": [f"Question with ID {question_id} not found"]
+                }
+                continue
+            answer = FlowResponse(
+                question=question,
+                timestamp=timestamp,
+                row_id=row_id,
+                contact_id=contact_id,
+                session_id=session_id,
+                response=response_id,
+                response_metadata=response_metadata,
+            )
+            try:
+                # We've pulled question from the database here, so we don't need to
+                # validate it. We also rely on database uniqueness checks instead. Both
+                # result in an extra database call.
+                answer.full_clean(exclude=["question"], validate_unique=False)
+            except ValidationError as e:
+                errors[i] = flatten_errors(e.error_dict)
+                continue
+            answers.append(answer)
+
+        if errors:
+            raise DRFValidationError({"data": {"attributes": {"responses": errors}}})
+
+        try:
+            FlowResponse.objects.bulk_create(answers)
+        except IntegrityError:
+            raise DRFValidationError(
+                {
+                    "data": {
+                        "attributes": {
+                            "responses": ["row_id is not unique for flow question"]
+                        }
+                    }
+                }
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,3 +1,6 @@
+from datetime import datetime, timezone
+from uuid import uuid4
+
 from django.conf import settings
 from django.contrib.auth.models import Permission, User
 from django.shortcuts import reverse
@@ -416,5 +419,203 @@ class FlowViewSetTests(APITestCase):
                     },
                 },
                 "relationships": {"responses": {"links": {"related": None}}},
+            },
+        )
+
+
+class FlowResultViewSetTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("test")
+        self.user.user_permissions.add(
+            Permission.objects.get(codename="add_flowresponse")
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
+        self.flow = Flow.objects.create()
+        self.list_url = reverse("flowresponse-list", args=[self.flow.id])
+        self.timestamp = datetime(2021, 2, 3, 4, 5, 6, 7, tzinfo=timezone.utc)
+
+    def test_authentication(self):
+        """
+        You need to authenticate to gain access to the endpoint
+        """
+        self.client.credentials()
+        response = self.client.post(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_permission(self):
+        """
+        You need permission to access the endpoint
+        """
+        self.user.user_permissions.remove(
+            Permission.objects.get(codename="add_flowresponse")
+        )
+        response = self.client.post(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_serializer_error(self):
+        """
+        The serializer provides basic request validation, so if the request format is
+        incorrect, an error should be returned
+        """
+        response = self.client.post(self.list_url, {})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {"data": ["This field is required."]})
+
+    def test_flow_missing_error(self):
+        """
+        Should return a 404 if we don't have a flow with the given ID
+        """
+        url = reverse("flowresponse-list", args=["invalid"])
+        data = {
+            "data": {
+                "id": "invalid",
+                "type": "packages",
+                "attributes": {"responses": []},
+            }
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        url = reverse("flowresponse-list", args=[str(uuid4())])
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_question_not_exists(self):
+        """
+        If the body references a question that doesn't exist, then it should return an
+        error
+        """
+        data = {
+            "data": {
+                "id": self.flow.id,
+                "type": "packages",
+                "attributes": {
+                    "responses": [[self.timestamp.isoformat(), 1, 1, 1, 1, "test", {}]]
+                },
+            }
+        }
+        response = self.client.post(self.list_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.json(),
+            {
+                "data": {
+                    "attributes": {
+                        "responses": {
+                            "0": {"question_id": ["Question with ID 1 not found"]}
+                        }
+                    }
+                }
+            },
+        )
+
+    def test_invalid_answer_for_question(self):
+        """
+        If the answer isn't valid for the question, an error should be returned
+        """
+        FlowQuestion.objects.create(
+            flow=self.flow,
+            id="1",
+            type=FlowQuestion.Type.SELECT_ONE,
+            label="q1",
+            type_options={"choices": ["a", "b"]},
+        )
+        data = {
+            "data": {
+                "id": self.flow.id,
+                "type": "packages",
+                "attributes": {
+                    "responses": [[self.timestamp.isoformat(), 1, 1, 1, "1", "c", {}]]
+                },
+            }
+        }
+        response = self.client.post(self.list_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.json(),
+            {
+                "data": {
+                    "attributes": {
+                        "responses": {
+                            "0": {
+                                "response": [
+                                    "c is not a valid choice. Valid choices are "
+                                    "['a', 'b']"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+        )
+
+    def test_valid_answers(self):
+        """
+        If the answers are valid, should be stored
+        """
+        FlowQuestion.objects.create(
+            flow=self.flow,
+            id="1",
+            type=FlowQuestion.Type.SELECT_ONE,
+            label="q1",
+            type_options={"choices": ["a", "b"]},
+        )
+        data = {
+            "data": {
+                "id": self.flow.id,
+                "type": "packages",
+                "attributes": {
+                    "responses": [
+                        [self.timestamp.isoformat(), i, 1, 1, "1", "a", {}]
+                        for i in range(10)
+                    ]
+                },
+            }
+        }
+        # Count queries to ensure we're not doing n + 1 queries
+        # 1: validate auth token
+        # 2: validate user permissions
+        # 3: validate user group permissions
+        # 4: get flow by ID
+        # 5: get all questions for flow
+        # 6: insert responses
+        with self.assertNumQueries(6):
+            response = self.client.post(self.list_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_validate_row_id_uniqueness(self):
+        """
+        Each row id should be unique. We're testing this because we're telling django
+        to ignore the row_id uniqueness checks, and have the database do it instead,
+        to avoid the extra database call
+        """
+        FlowQuestion.objects.create(
+            flow=self.flow,
+            id="1",
+            type=FlowQuestion.Type.SELECT_ONE,
+            label="q1",
+            type_options={"choices": ["a", "b"]},
+        )
+        data = {
+            "data": {
+                "id": self.flow.id,
+                "type": "packages",
+                "attributes": {
+                    "responses": [[self.timestamp.isoformat(), 1, 1, 1, "1", "a", {}]]
+                    * 2
+                },
+            }
+        }
+        response = self.client.post(self.list_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.json(),
+            {
+                "data": {
+                    "attributes": {
+                        "responses": ["row_id is not unique for flow question"]
+                    }
+                }
             },
         )
