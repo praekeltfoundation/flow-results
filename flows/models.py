@@ -37,7 +37,6 @@ class Flow(models.Model):
 
     class Meta:
         ordering = ["modified"]
-        indexes = [models.Index(fields=["modified"])]
 
 
 class FlowQuestion(models.Model):
@@ -135,7 +134,6 @@ class FlowResponse(models.Model):
 
     class Meta:
         unique_together = [["question_id", "row_id_value"]]
-        indexes = [models.Index(fields=["row_id_value"])]
 
     @staticmethod
     def _deserialize(type_, value):
