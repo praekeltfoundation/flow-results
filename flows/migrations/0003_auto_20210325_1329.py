@@ -6,16 +6,16 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('flows', '0002_auto_20210325_1317'),
+        ("flows", "0002_auto_20210325_1317"),
     ]
 
     operations = [
         migrations.RemoveIndex(
-            model_name='flow',
-            name='flows_flow_modifie_ffdb09_idx',
+            model_name="flow",
+            name="flows_flow_modifie_ffdb09_idx",
         ),
         migrations.RemoveIndex(
-            model_name='flowresponse',
-            name='flows_flowr_row_id__6f17f7_idx',
+            model_name="flowresponse",
+            name="flows_flowr_row_id__6f17f7_idx",
         ),
     ]

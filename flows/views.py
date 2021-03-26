@@ -110,8 +110,11 @@ class FlowViewSet(viewsets.ViewSet):
                         "resources": [
                             {
                                 "path": None,
-                                # TODO: Add results URL here, once we have results
-                                "api-data-url": None,
+                                "api-data-url": reverse(
+                                    "flowresponse-list",
+                                    args=[str(flow.id)],
+                                    request=request,
+                                ),
                                 "mediatype": "application/json",
                                 "encoding": "utf-8",
                                 "schema": {
@@ -194,8 +197,11 @@ class FlowViewSet(viewsets.ViewSet):
                         "resources": [
                             {
                                 "path": None,
-                                # TODO: Once we have the results endpoint, put it here
-                                "api-data-url": None,
+                                "api-data-url": reverse(
+                                    "flowresponse-list",
+                                    args=[str(flow.id)],
+                                    request=request,
+                                ),
                                 "mediatype": "application/json",
                                 "encoding": "utf-8",
                                 "schema": {
@@ -217,8 +223,11 @@ class FlowViewSet(viewsets.ViewSet):
                 "relationships": {
                     "responses": {
                         "links": {
-                            # TODO: Once we have the results endpoint, put it here
-                            "related": None
+                            "related": reverse(
+                                "flowresponse-list",
+                                args=[str(flow.id)],
+                                request=request,
+                            ),
                         }
                     }
                 },
@@ -294,3 +303,45 @@ class FlowResponseViewSet(viewsets.ViewSet):
             )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def list(self, request, parent_lookup_question__flow=None):
+        # TODO: filtering
+        try:
+            flow = Flow.objects.get(id=parent_lookup_question__flow)
+        except (Flow.DoesNotExist, ValidationError):
+            raise NotFound()
+
+        question_ids = flow.flowquestion_set.values_list("id")
+        answers = FlowResponse.objects.filter(question__in=question_ids).order_by("id")
+        return Response(
+            {
+                "data": {
+                    "type": "flow-results-data",
+                    "id": flow.id,
+                    "attributes": {
+                        "responses": answers.values_list(
+                            "timestamp",
+                            "row_id_value",
+                            "contact_id_value",
+                            "session_id_value",
+                            "question_id",
+                            "response_value",
+                            "response_metadata",
+                        )
+                    },
+                    "relationships": {
+                        "descriptor": {
+                            "links": {
+                                "self": request.build_absolute_uri(),
+                            }
+                        },
+                        "links": {
+                            "self": request.build_absolute_uri(),
+                            # TODO: pagination
+                            "next": None,
+                            "previous": None,
+                        },
+                    },
+                }
+            }
+        )

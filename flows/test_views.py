@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from flows.models import Flow, FlowQuestion
+from flows.models import Flow, FlowQuestion, FlowResponse
 from flows.views import SCHEMA_FIELDS
 
 
@@ -271,7 +271,8 @@ class FlowViewSetTests(APITestCase):
                         "resources": [
                             {
                                 "path": None,
-                                "api-data-url": None,
+                                "api-data-url": "http://testserver"
+                                f"{reverse('flowresponse-list', args=[flow.id])}",
                                 "mediatype": "application/json",
                                 "encoding": "utf-8",
                                 "schema": {
@@ -394,7 +395,8 @@ class FlowViewSetTests(APITestCase):
                         "title": flow.title,
                         "resources": [
                             {
-                                "api-data-url": None,
+                                "api-data-url": "http://testserver"
+                                f"{reverse('flowresponse-list', args=[flow.id])}",
                                 "encoding": "utf-8",
                                 "mediatype": "application/json",
                                 "path": None,
@@ -418,7 +420,14 @@ class FlowViewSetTests(APITestCase):
                         ],
                     },
                 },
-                "relationships": {"responses": {"links": {"related": None}}},
+                "relationships": {
+                    "responses": {
+                        "links": {
+                            "related": "http://testserver"
+                            f"{reverse('flowresponse-list', args=[flow.id])}"
+                        }
+                    }
+                },
             },
         )
 
@@ -428,6 +437,9 @@ class FlowResultViewSetTests(APITestCase):
         self.user = User.objects.create_user("test")
         self.user.user_permissions.add(
             Permission.objects.get(codename="add_flowresponse")
+        )
+        self.user.user_permissions.add(
+            Permission.objects.get(codename="view_flowresponse")
         )
         self.token = Token.objects.create(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
@@ -442,6 +454,8 @@ class FlowResultViewSetTests(APITestCase):
         self.client.credentials()
         response = self.client.post(self.list_url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_permission(self):
         """
@@ -450,7 +464,12 @@ class FlowResultViewSetTests(APITestCase):
         self.user.user_permissions.remove(
             Permission.objects.get(codename="add_flowresponse")
         )
+        self.user.user_permissions.remove(
+            Permission.objects.get(codename="view_flowresponse")
+        )
         response = self.client.post(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_serializer_error(self):
@@ -616,6 +635,67 @@ class FlowResultViewSetTests(APITestCase):
                     "attributes": {
                         "responses": ["row_id is not unique for flow question"]
                     }
+                }
+            },
+        )
+
+    def test_list_view_not_found(self):
+        """
+        If the give flow ID is not valid, should return a not found error
+        """
+        url = reverse("flowresponse-list", args=["invalid"])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        url = reverse("flowresponse-list", args=[str(uuid4())])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_list_view(self):
+        question = FlowQuestion.objects.create(
+            flow=self.flow,
+            id="1",
+            type=FlowQuestion.Type.SELECT_ONE,
+            label="q1",
+            type_options={"choices": ["a", "b"]},
+        )
+        for i in range(5):
+            FlowResponse.objects.create(
+                question=question,
+                timestamp=self.timestamp,
+                row_id=i,
+                contact_id=1,
+                session_id=1,
+                response="a",
+                response_metadata={},
+            )
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.maxDiff = None
+        self.assertEqual(
+            response.json(),
+            {
+                "data": {
+                    "type": "flow-results-data",
+                    "id": str(self.flow.id),
+                    "attributes": {
+                        "responses": [
+                            ["2021-02-03T04:05:06.000007Z", i, 1, 1, 1, "a", {}]
+                            for i in range(5)
+                        ]
+                    },
+                    "relationships": {
+                        "descriptor": {
+                            "links": {
+                                "self": f"http://testserver{self.list_url}",
+                            }
+                        },
+                        "links": {
+                            "self": f"http://testserver{self.list_url}",
+                            "next": None,
+                            "previous": None,
+                        },
+                    },
                 }
             },
         )
