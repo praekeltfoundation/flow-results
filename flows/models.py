@@ -5,7 +5,7 @@ from uuid import uuid4
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinLengthValidator, RegexValidator
 from django.db import models
-from django.utils import timezone
+from django.utils import dateparse, timezone
 
 from flows.types import URL
 
@@ -140,11 +140,11 @@ class FlowResponse(models.Model):
         if type_ == FlowResponse.Type.URL:
             return URL(value)
         elif type_ == FlowResponse.Type.DATETIME:
-            return datetime.fromisoformat(value)
+            return dateparse.parse_datetime(value)
         elif type_ == FlowResponse.Type.DATE:
-            return date.fromisoformat(value)
+            return dateparse.parse_date(value)
         elif type_ == FlowResponse.Type.TIME:
-            return time.fromisoformat(value)
+            return dateparse.parse_time(value)
         return value
 
     @staticmethod
@@ -346,7 +346,7 @@ class FlowResponse(models.Model):
         elif type_ == FlowQuestion.Type.DATETIME:
             if isinstance(self.response, str):
                 try:
-                    self.response = datetime.fromisoformat(self.response)
+                    self.response = dateparse.parse_datetime(self.response)
                 except ValueError:
                     pass
             if not isinstance(self.response, datetime):
@@ -354,7 +354,7 @@ class FlowResponse(models.Model):
         elif type_ == FlowQuestion.Type.DATE:
             if isinstance(self.response, str):
                 try:
-                    self.response = date.fromisoformat(self.response)
+                    self.response = dateparse.parse_date(self.response)
                 except ValueError:
                     pass
             if not isinstance(self.response, date):
@@ -362,7 +362,7 @@ class FlowResponse(models.Model):
         elif type_ == FlowQuestion.Type.TIME:
             if isinstance(self.response, str):
                 try:
-                    self.response = time.fromisoformat(self.response)
+                    self.response = dateparse.parse_time(self.response)
                 except ValueError:
                     pass
             if not isinstance(self.response, time):

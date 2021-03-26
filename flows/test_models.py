@@ -501,7 +501,7 @@ class FlowResponseTests(TestCase):
         response = self.create_response()
         response.question.type = FlowQuestion.Type.DATETIME
 
-        response.response = "invalid"
+        response.response = "2021-02-29T03:04:05.123456+00:00"
         with self.assertRaises(ValidationError) as e:
             response.full_clean()
         self.assertEqual(
@@ -519,7 +519,7 @@ class FlowResponseTests(TestCase):
         response = self.create_response()
         response.question.type = FlowQuestion.Type.DATE
 
-        response.response = "invalid"
+        response.response = "2021-02-29"
         with self.assertRaises(ValidationError) as e:
             response.full_clean()
         self.assertEqual(
@@ -537,7 +537,7 @@ class FlowResponseTests(TestCase):
         response = self.create_response()
         response.question.type = FlowQuestion.Type.TIME
 
-        response.response = "invalid"
+        response.response = "25:26"
         with self.assertRaises(ValidationError) as e:
             response.full_clean()
         self.assertEqual(

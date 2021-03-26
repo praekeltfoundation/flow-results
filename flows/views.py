@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import uuid4
 
 from django.conf import settings
@@ -7,6 +6,7 @@ from django.db.models import Q
 from django.db.transaction import atomic
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
+from django.utils import dateparse
 from rest_framework import status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -318,16 +318,18 @@ class FlowResponseViewSet(viewsets.ViewSet):
 
         try:
             start_filter = request.query_params["filter[start-timestamp]"]
-            start_filter = datetime.fromisoformat(start_filter)
+            start_filter = dateparse.parse_datetime(start_filter)
+            assert start_filter is not None
             answers = answers.filter(timestamp__gt=start_filter)
-        except (KeyError, ValueError):
+        except (KeyError, ValueError, AssertionError):
             pass
 
         try:
             end_filter = request.query_params["filter[end-timestamp]"]
-            end_filter = datetime.fromisoformat(end_filter)
+            end_filter = dateparse.parse_datetime(end_filter)
+            assert end_filter is not None
             answers = answers.filter(timestamp__lte=end_filter)
-        except (KeyError, ValueError):
+        except (KeyError, ValueError, AssertionError):
             pass
 
         page_size = settings.REST_FRAMEWORK["PAGE_SIZE"]
