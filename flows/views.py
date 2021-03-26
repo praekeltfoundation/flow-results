@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import uuid4
 
 from django.core.exceptions import ValidationError
@@ -305,7 +306,6 @@ class FlowResponseViewSet(viewsets.ViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, parent_lookup_question__flow=None):
-        # TODO: filtering
         try:
             flow = Flow.objects.get(id=parent_lookup_question__flow)
         except (Flow.DoesNotExist, ValidationError):
@@ -313,6 +313,21 @@ class FlowResponseViewSet(viewsets.ViewSet):
 
         question_ids = flow.flowquestion_set.values_list("id")
         answers = FlowResponse.objects.filter(question__in=question_ids).order_by("id")
+
+        try:
+            start_filter = request.query_params["filter[start-timestamp]"]
+            start_filter = datetime.fromisoformat(start_filter)
+            answers = answers.filter(timestamp__gt=start_filter)
+        except (KeyError, ValueError):
+            pass
+
+        try:
+            end_filter = request.query_params["filter[end-timestamp]"]
+            end_filter = datetime.fromisoformat(end_filter)
+            answers = answers.filter(timestamp__lte=end_filter)
+        except (KeyError, ValueError):
+            pass
+
         return Response(
             {
                 "data": {

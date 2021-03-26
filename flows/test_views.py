@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.conf import settings
@@ -671,7 +672,6 @@ class FlowResultViewSetTests(APITestCase):
             )
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.maxDiff = None
         self.assertEqual(
             response.json(),
             {
@@ -699,3 +699,42 @@ class FlowResultViewSetTests(APITestCase):
                 }
             },
         )
+
+    def test_list_view_filter(self):
+        question = FlowQuestion.objects.create(
+            flow=self.flow,
+            id="1",
+            type=FlowQuestion.Type.SELECT_ONE,
+            label="q1",
+            type_options={"choices": ["a", "b"]},
+        )
+        for i in range(5):
+            FlowResponse.objects.create(
+                question=question,
+                timestamp=datetime(2021, 2, 3, 4, 5, i, tzinfo=timezone.utc),
+                row_id=i,
+                contact_id=1,
+                session_id=1,
+                response="a",
+                response_metadata={},
+            )
+        querystring = urlencode(
+            {
+                "filter[start-timestamp]": datetime(
+                    2021, 2, 3, 4, 5, 0, tzinfo=timezone.utc
+                ).isoformat(),
+                "filter[end-timestamp]": datetime(
+                    2021, 2, 3, 4, 5, 3, tzinfo=timezone.utc
+                ).isoformat(),
+            }
+        )
+        response = self.client.get(f"{self.list_url}?{querystring}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()["data"]["attributes"]["responses"]), 3)
+
+        querystring = urlencode(
+            {"filter[start-timestamp]": "invalid", "filter[end-timestamp]": "invalid"}
+        )
+        response = self.client.get(f"{self.list_url}?{querystring}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()["data"]["attributes"]["responses"]), 5)
