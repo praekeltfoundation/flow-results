@@ -39,6 +39,7 @@ setup(
         "django-environ==0.4.5",
         "djangorestframework==3.12.2",
         "drf-extensions==0.7.0",
+        "django-health-check==3.16.3",
     ],
     extras_require={
         "dev": [

@@ -36,6 +36,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
+    "health_check",
+    "health_check.db",
+    "health_check.contrib.migrations",
     "flows",
 ]
 
