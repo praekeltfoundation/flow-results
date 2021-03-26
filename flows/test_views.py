@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode
 from uuid import uuid4
 
 from django.conf import settings
@@ -670,7 +670,9 @@ class FlowResultViewSetTests(APITestCase):
                 response="a",
                 response_metadata={},
             )
-        response = self.client.get(self.list_url)
+        # token, permission, group permission, flow, answers
+        with self.assertNumQueries(5):
+            response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             response.json(),
@@ -728,7 +730,9 @@ class FlowResultViewSetTests(APITestCase):
                 ).isoformat(),
             }
         )
-        response = self.client.get(f"{self.list_url}?{querystring}")
+        # token, permission, group permission, flow, answers
+        with self.assertNumQueries(5):
+            response = self.client.get(f"{self.list_url}?{querystring}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.json()["data"]["attributes"]["responses"]), 3)
 
@@ -738,3 +742,163 @@ class FlowResultViewSetTests(APITestCase):
         response = self.client.get(f"{self.list_url}?{querystring}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.json()["data"]["attributes"]["responses"]), 5)
+
+    def test_list_view_first_page(self):
+        """
+        First page should have a next page, but not a previous page
+        """
+        question = FlowQuestion.objects.create(
+            flow=self.flow,
+            id="1",
+            type=FlowQuestion.Type.SELECT_ONE,
+            label="q1",
+            type_options={"choices": ["a", "b"]},
+        )
+        for i in range(5):
+            FlowResponse.objects.create(
+                question=question,
+                timestamp=datetime(2021, 2, 3, 4, 5, i, tzinfo=timezone.utc),
+                row_id=i,
+                contact_id=1,
+                session_id=1,
+                response="a",
+                response_metadata={},
+            )
+        querystring = urlencode({"page[size]": 2})
+        # token, permission, group permission, flow, answers
+        with self.assertNumQueries(5):
+            response = self.client.get(f"{self.list_url}?{querystring}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()["data"]["attributes"]["responses"]), 2)
+        self.assertEqual(
+            parse_qs(
+                response.json()["data"]["relationships"]["links"]["next"].split("?")[1]
+            ),
+            {"page[afterCursor]": ["1"], "page[size]": ["2"]},
+        )
+        self.assertEqual(
+            response.json()["data"]["relationships"]["links"]["previous"], None
+        )
+
+    def test_list_view_middle_page(self):
+        """
+        Middle page should have a next and previous page
+        """
+        question = FlowQuestion.objects.create(
+            flow=self.flow,
+            id="1",
+            type=FlowQuestion.Type.SELECT_ONE,
+            label="q1",
+            type_options={"choices": ["a", "b"]},
+        )
+        for i in range(5):
+            FlowResponse.objects.create(
+                question=question,
+                timestamp=datetime(2021, 2, 3, 4, 5, i, tzinfo=timezone.utc),
+                row_id=i,
+                contact_id=1,
+                session_id=1,
+                response="a",
+                response_metadata={},
+            )
+        querystring = urlencode({"page[size]": 2, "page[afterCursor]": 1})
+        # token, permission, group permission, flow, pagination answer, answers
+        with self.assertNumQueries(6):
+            response = self.client.get(f"{self.list_url}?{querystring}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()["data"]["attributes"]["responses"]), 2)
+        self.assertEqual(
+            parse_qs(
+                response.json()["data"]["relationships"]["links"]["next"].split("?")[1]
+            ),
+            {"page[afterCursor]": ["3"], "page[size]": ["2"]},
+        )
+        self.assertEqual(
+            parse_qs(
+                response.json()["data"]["relationships"]["links"]["previous"].split(
+                    "?"
+                )[1]
+            ),
+            {"page[beforeCursor]": ["2"], "page[size]": ["2"]},
+        )
+
+    def test_list_view_last_page(self):
+        """
+        Last page should have previous page, but no next
+        """
+        question = FlowQuestion.objects.create(
+            flow=self.flow,
+            id="1",
+            type=FlowQuestion.Type.SELECT_ONE,
+            label="q1",
+            type_options={"choices": ["a", "b"]},
+        )
+        for i in range(5):
+            FlowResponse.objects.create(
+                question=question,
+                timestamp=datetime(2021, 2, 3, 4, 5, i, tzinfo=timezone.utc),
+                row_id=f"a{i}",
+                contact_id=1,
+                session_id=1,
+                response="a",
+                response_metadata={},
+            )
+        querystring = urlencode({"page[size]": 2, "page[afterCursor]": "a3"})
+        # token, permission, group permission, flow, pagination answer, answers
+        with self.assertNumQueries(6):
+            response = self.client.get(f"{self.list_url}?{querystring}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()["data"]["attributes"]["responses"]), 1)
+        self.assertEqual(
+            response.json()["data"]["relationships"]["links"]["next"], None
+        )
+        self.assertEqual(
+            parse_qs(
+                response.json()["data"]["relationships"]["links"]["previous"].split(
+                    "?"
+                )[1]
+            ),
+            {"page[beforeCursor]": ["a4"], "page[size]": ["2"]},
+        )
+
+    def test_list_view_before_cursor(self):
+        """
+        We should also be able to paginate backwards
+        """
+        question = FlowQuestion.objects.create(
+            flow=self.flow,
+            id="1",
+            type=FlowQuestion.Type.SELECT_ONE,
+            label="q1",
+            type_options={"choices": ["a", "b"]},
+        )
+        for i in range(5):
+            FlowResponse.objects.create(
+                question=question,
+                timestamp=datetime(2021, 2, 3, 4, 5, i, tzinfo=timezone.utc),
+                row_id=f"a{i}",
+                contact_id=1,
+                session_id=1,
+                response="a",
+                response_metadata={},
+            )
+        querystring = urlencode({"page[size]": 2, "page[beforeCursor]": "a4"})
+        # token, permission, group permission, flow, pagination answer, answers
+        with self.assertNumQueries(6):
+            response = self.client.get(f"{self.list_url}?{querystring}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()["data"]["attributes"]["responses"]), 2)
+        self.assertEqual(
+            parse_qs(
+                response.json()["data"]["relationships"]["links"]["next"].split("?")[1]
+            ),
+            {"page[afterCursor]": ["a3"], "page[size]": ["2"]},
+        )
+        self.assertEqual(
+            parse_qs(
+                response.json()["data"]["relationships"]["links"]["previous"].split(
+                    "?"
+                )[1]
+            ),
+            {"page[beforeCursor]": ["a2"], "page[size]": ["2"]},
+        )

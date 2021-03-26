@@ -1,7 +1,9 @@
 from datetime import datetime
 from uuid import uuid4
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.db.transaction import atomic
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
@@ -11,6 +13,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
+from rest_framework.utils.urls import remove_query_param, replace_query_param
 
 from flows.models import Flow, FlowQuestion, FlowResponse
 from flows.serializers import FlowResponsesSerializer, FlowSerializer
@@ -311,8 +314,7 @@ class FlowResponseViewSet(viewsets.ViewSet):
         except (Flow.DoesNotExist, ValidationError):
             raise NotFound()
 
-        question_ids = flow.flowquestion_set.values_list("id")
-        answers = FlowResponse.objects.filter(question__in=question_ids).order_by("id")
+        answers = FlowResponse.objects.filter(question__flow=flow).order_by("id")
 
         try:
             start_filter = request.query_params["filter[start-timestamp]"]
@@ -328,22 +330,89 @@ class FlowResponseViewSet(viewsets.ViewSet):
         except (KeyError, ValueError):
             pass
 
+        page_size = settings.REST_FRAMEWORK["PAGE_SIZE"]
+        try:
+            page_size = min(page_size, int(request.query_params["page[size]"]))
+        except (KeyError, ValueError):
+            pass
+
+        has_next = False
+        has_previous = False
+        reversed = False
+        try:
+            after = request.query_params["page[afterCursor]"]
+            # row_id could be int or string, so try both
+            # if they have an int and a string with the same value, then there's not
+            # much we can do, query strings only support ints
+            filter_row_id = Q(row_id_value=after)
+            try:
+                filter_row_id |= Q(row_id_value=int(after))
+            except ValueError:
+                pass
+            after_answer = FlowResponse.objects.get(filter_row_id, question__flow=flow)
+            answers = answers.filter(id__gt=after_answer.id)
+            answers = answers.order_by("id")
+            has_previous = True
+        except (KeyError, FlowResponse.DoesNotExist):
+            pass
+
+        try:
+            before = request.query_params["page[beforeCursor]"]
+            filter_row_id = Q(row_id_value=before)
+            try:
+                filter_row_id |= Q(row_id_value=int(before))
+            except ValueError:
+                pass
+            before_answer = FlowResponse.objects.get(filter_row_id, question__flow=flow)
+            answers = answers.filter(id__lt=before_answer.id)
+            answers = answers.order_by("-id")
+            reversed = True
+            has_next = True
+        except (KeyError, FlowResponse.DoesNotExist):
+            pass
+
+        answers = answers[: page_size + 1].values_list(
+            "timestamp",
+            "row_id_value",
+            "contact_id_value",
+            "session_id_value",
+            "question_id",
+            "response_value",
+            "response_metadata",
+        )
+
+        if len(answers) > page_size:
+            answers = answers[:page_size]
+            if reversed:
+                has_previous = True
+            else:
+                has_next = True
+
+        if reversed:
+            answers = answers[::-1]
+
+        if has_next:
+            next_ = replace_query_param(
+                request.build_absolute_uri(), "page[afterCursor]", answers[-1][1]
+            )
+            next_ = remove_query_param(next_, "page[beforeCursor]")
+        else:
+            next_ = None
+
+        if has_previous:
+            previous = replace_query_param(
+                request.build_absolute_uri(), "page[beforeCursor]", answers[0][1]
+            )
+            previous = remove_query_param(previous, "page[afterCursor]")
+        else:
+            previous = None
+
         return Response(
             {
                 "data": {
                     "type": "flow-results-data",
                     "id": flow.id,
-                    "attributes": {
-                        "responses": answers.values_list(
-                            "timestamp",
-                            "row_id_value",
-                            "contact_id_value",
-                            "session_id_value",
-                            "question_id",
-                            "response_value",
-                            "response_metadata",
-                        )
-                    },
+                    "attributes": {"responses": answers},
                     "relationships": {
                         "descriptor": {
                             "links": {
@@ -352,9 +421,8 @@ class FlowResponseViewSet(viewsets.ViewSet):
                         },
                         "links": {
                             "self": request.build_absolute_uri(),
-                            # TODO: pagination
-                            "next": None,
-                            "previous": None,
+                            "next": next_,
+                            "previous": previous,
                         },
                     },
                 }
