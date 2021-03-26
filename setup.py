@@ -40,6 +40,7 @@ setup(
         "djangorestframework==3.12.2",
         "drf-extensions==0.7.0",
         "django-health-check==3.16.3",
+        "django-prometheus==2.1.0",
     ],
     extras_require={
         "dev": [
