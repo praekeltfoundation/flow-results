@@ -21,5 +21,6 @@ from flows import urls as flow_urls
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("health/", include("health_check.urls")),
+    path("", include("django_prometheus.urls")),
     path("", include(flow_urls.urlpatterns)),
 ]
