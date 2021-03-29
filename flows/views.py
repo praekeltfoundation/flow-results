@@ -1,16 +1,22 @@
 from uuid import uuid4
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.db.transaction import atomic
+from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
+from django.utils import dateparse
 from rest_framework import status, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
+from rest_framework.utils.urls import remove_query_param, replace_query_param
 
-from flows.models import Flow, FlowQuestion
-from flows.serializers import FlowSerializer
+from flows.models import Flow, FlowQuestion, FlowResponse
+from flows.serializers import FlowResponsesSerializer, FlowSerializer
 
 SCHEMA_FIELDS = [
     {"name": "timestamp", "title": "Timestamp", "type": "datetime"},
@@ -108,8 +114,11 @@ class FlowViewSet(viewsets.ViewSet):
                         "resources": [
                             {
                                 "path": None,
-                                # TODO: Add results URL here, once we have results
-                                "api-data-url": None,
+                                "api-data-url": reverse(
+                                    "flowresponse-list",
+                                    args=[str(flow.id)],
+                                    request=request,
+                                ),
                                 "mediatype": "application/json",
                                 "encoding": "utf-8",
                                 "schema": {
@@ -192,8 +201,11 @@ class FlowViewSet(viewsets.ViewSet):
                         "resources": [
                             {
                                 "path": None,
-                                # TODO: Once we have the results endpoint, put it here
-                                "api-data-url": None,
+                                "api-data-url": reverse(
+                                    "flowresponse-list",
+                                    args=[str(flow.id)],
+                                    request=request,
+                                ),
                                 "mediatype": "application/json",
                                 "encoding": "utf-8",
                                 "schema": {
@@ -215,10 +227,206 @@ class FlowViewSet(viewsets.ViewSet):
                 "relationships": {
                     "responses": {
                         "links": {
-                            # TODO: Once we have the results endpoint, put it here
-                            "related": None
+                            "related": reverse(
+                                "flowresponse-list",
+                                args=[str(flow.id)],
+                                request=request,
+                            ),
                         }
                     }
                 },
+            }
+        )
+
+
+class FlowResponseViewSet(viewsets.ViewSet):
+    queryset = FlowResponse.objects.all()
+
+    def create(self, request, parent_lookup_question__flow=None):
+        serializer = FlowResponsesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            flow = Flow.objects.get(id=parent_lookup_question__flow)
+        except (Flow.DoesNotExist, ValidationError):
+            raise NotFound()
+        response_data = serializer.data["data"]["attributes"]["responses"]
+        errors = {}
+        answers = []
+        questions = {question.id: question for question in flow.flowquestion_set.all()}
+        for i, response in enumerate(response_data):
+            (
+                timestamp,
+                row_id,
+                contact_id,
+                session_id,
+                question_id,
+                response_id,
+                response_metadata,
+            ) = response
+            try:
+                question = questions[question_id]
+            except KeyError:
+                errors[i] = {
+                    "question_id": [f"Question with ID {question_id} not found"]
+                }
+                continue
+            answer = FlowResponse(
+                question=question,
+                timestamp=timestamp,
+                row_id=row_id,
+                contact_id=contact_id,
+                session_id=session_id,
+                response=response_id,
+                response_metadata=response_metadata,
+            )
+            try:
+                # We've pulled question from the database here, so we don't need to
+                # validate it. We also rely on database uniqueness checks instead. Both
+                # result in an extra database call.
+                answer.full_clean(exclude=["question"], validate_unique=False)
+            except ValidationError as e:
+                errors[i] = flatten_errors(e.error_dict)
+                continue
+            answers.append(answer)
+
+        if errors:
+            raise DRFValidationError({"data": {"attributes": {"responses": errors}}})
+
+        try:
+            FlowResponse.objects.bulk_create(answers)
+        except IntegrityError:
+            raise DRFValidationError(
+                {
+                    "data": {
+                        "attributes": {
+                            "responses": ["row_id is not unique for flow question"]
+                        }
+                    }
+                }
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def list(self, request, parent_lookup_question__flow=None):
+        try:
+            flow = Flow.objects.get(id=parent_lookup_question__flow)
+        except (Flow.DoesNotExist, ValidationError):
+            raise NotFound()
+
+        answers = FlowResponse.objects.filter(question__flow=flow).order_by("id")
+
+        try:
+            start_filter = request.query_params["filter[start-timestamp]"]
+            start_filter = dateparse.parse_datetime(start_filter)
+            assert start_filter is not None
+            answers = answers.filter(timestamp__gt=start_filter)
+        except (KeyError, ValueError, AssertionError):
+            pass
+
+        try:
+            end_filter = request.query_params["filter[end-timestamp]"]
+            end_filter = dateparse.parse_datetime(end_filter)
+            assert end_filter is not None
+            answers = answers.filter(timestamp__lte=end_filter)
+        except (KeyError, ValueError, AssertionError):
+            pass
+
+        page_size = settings.REST_FRAMEWORK["PAGE_SIZE"]
+        try:
+            page_size = min(page_size, int(request.query_params["page[size]"]))
+        except (KeyError, ValueError):
+            pass
+
+        has_next = False
+        has_previous = False
+        reversed = False
+        try:
+            after = request.query_params["page[afterCursor]"]
+            # row_id could be int or string, so try both
+            # if they have an int and a string with the same value, then there's not
+            # much we can do, query strings only support ints
+            filter_row_id = Q(row_id_value=after)
+            try:
+                filter_row_id |= Q(row_id_value=int(after))
+            except ValueError:
+                pass
+            after_answer = FlowResponse.objects.get(filter_row_id, question__flow=flow)
+            answers = answers.filter(id__gt=after_answer.id)
+            answers = answers.order_by("id")
+            has_previous = True
+        except (KeyError, FlowResponse.DoesNotExist):
+            pass
+
+        try:
+            before = request.query_params["page[beforeCursor]"]
+            filter_row_id = Q(row_id_value=before)
+            try:
+                filter_row_id |= Q(row_id_value=int(before))
+            except ValueError:
+                pass
+            before_answer = FlowResponse.objects.get(filter_row_id, question__flow=flow)
+            answers = answers.filter(id__lt=before_answer.id)
+            answers = answers.order_by("-id")
+            reversed = True
+            has_next = True
+        except (KeyError, FlowResponse.DoesNotExist):
+            pass
+
+        answers = answers[: page_size + 1].values_list(
+            "timestamp",
+            "row_id_value",
+            "contact_id_value",
+            "session_id_value",
+            "question_id",
+            "response_value",
+            "response_metadata",
+        )
+
+        if len(answers) > page_size:
+            answers = answers[:page_size]
+            if reversed:
+                has_previous = True
+            else:
+                has_next = True
+
+        if reversed:
+            answers = answers[::-1]
+
+        if has_next:
+            next_ = replace_query_param(
+                request.build_absolute_uri(), "page[afterCursor]", answers[-1][1]
+            )
+            next_ = remove_query_param(next_, "page[beforeCursor]")
+        else:
+            next_ = None
+
+        if has_previous:
+            previous = replace_query_param(
+                request.build_absolute_uri(), "page[beforeCursor]", answers[0][1]
+            )
+            previous = remove_query_param(previous, "page[afterCursor]")
+        else:
+            previous = None
+
+        return Response(
+            {
+                "data": {
+                    "type": "flow-results-data",
+                    "id": flow.id,
+                    "attributes": {"responses": answers},
+                    "relationships": {
+                        "descriptor": {
+                            "links": {
+                                "self": request.build_absolute_uri(),
+                            }
+                        },
+                        "links": {
+                            "self": request.build_absolute_uri(),
+                            "next": next_,
+                            "previous": previous,
+                        },
+                    },
+                }
             }
         )
