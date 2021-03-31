@@ -41,6 +41,7 @@ setup(
         "drf-extensions==0.7.0",
         "django-health-check==3.16.3",
         "django-prometheus==2.1.0",
+        "psycopg2-binary==2.8.6",
     ],
     extras_require={
         "dev": [
