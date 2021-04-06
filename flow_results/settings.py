@@ -135,3 +135,15 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.CursorPagination",
     "PAGE_SIZE": 100,
 }
+
+
+SENTRY_DSN = env.str("SENTRY_DSN", None)
+if SENTRY_DSN is not None:  # pragma: no cover
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", 0.0),
+    )
