@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlencode
 from uuid import uuid4
@@ -204,54 +205,56 @@ class FlowViewSetTests(APITestCase):
         url = reverse("flow-list")
         response = self.client.post(
             url,
-            {
-                "data": {
-                    "type": "packages",
-                    "attributes": {
-                        "profile": "flow-results-package",
-                        "name": "standard_test_survey",
-                        "flow-results-specification": "1.0.0-rc1",
-                        "created": "2015-11-26 02:59:24+00:00",
-                        "modified": "2017-12-04 15:54:44+00:00",
-                        "id": None,
-                        "title": "Standard Test Survey",
-                        "resources": [
-                            {
-                                "path": None,
-                                "api-data-url": None,
-                                "mediatype": "application/json",
-                                "encoding": "utf-8",
-                                "schema": {
-                                    "language": "eng",
-                                    "fields": SCHEMA_FIELDS,
-                                    "questions": {
-                                        "1448506769745_42": {
-                                            "type": "select_one",
-                                            "label": "Are you a woman or a man?",
-                                            "type_options": {
-                                                "choices": ["Woman", "Man", "Other"]
+            json.dumps(
+                {
+                    "data": {
+                        "type": "packages",
+                        "attributes": {
+                            "profile": "flow-results-package",
+                            "name": "standard_test_survey",
+                            "flow-results-specification": "1.0.0-rc1",
+                            "created": "2015-11-26 02:59:24+00:00",
+                            "modified": "2017-12-04 15:54:44+00:00",
+                            "id": None,
+                            "title": "Standard Test Survey",
+                            "resources": [
+                                {
+                                    "path": None,
+                                    "api-data-url": None,
+                                    "mediatype": "application/json",
+                                    "encoding": "utf-8",
+                                    "schema": {
+                                        "language": "eng",
+                                        "fields": SCHEMA_FIELDS,
+                                        "questions": {
+                                            "1448506769745_42": {
+                                                "type": "select_one",
+                                                "label": "Are you a woman or a man?",
+                                                "type_options": {
+                                                    "choices": ["Woman", "Man", "Other"]
+                                                },
+                                            },
+                                            "1448506773018_89": {
+                                                "type": "numeric",
+                                                "label": "How old are you? "
+                                                "Please enter your age in years.",
+                                                "type_options": {"range": [-99, 99]},
+                                            },
+                                            "1448506774930_30": {
+                                                "type": "open",
+                                                "label": "What was the best thing that "
+                                                "happened to you today?",
+                                                "type_options": {},
                                             },
                                         },
-                                        "1448506773018_89": {
-                                            "type": "numeric",
-                                            "label": "How old are you? "
-                                            "Please enter your age in years.",
-                                            "type_options": {"range": [-99, 99]},
-                                        },
-                                        "1448506774930_30": {
-                                            "type": "open",
-                                            "label": "What was the best thing that "
-                                            "happened to you today?",
-                                            "type_options": {},
-                                        },
                                     },
-                                },
-                            }
-                        ],
-                    },
+                                }
+                            ],
+                        },
+                    }
                 }
-            },
-            format="json",
+            ),
+            content_type="application/vnd.api+json",
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         [flow] = Flow.objects.all()
