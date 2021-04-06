@@ -493,7 +493,7 @@ class FlowResultViewSetTests(APITestCase):
         data = {
             "data": {
                 "id": "invalid",
-                "type": "packages",
+                "type": "responses",
                 "attributes": {"responses": []},
             }
         }
@@ -512,7 +512,7 @@ class FlowResultViewSetTests(APITestCase):
         data = {
             "data": {
                 "id": self.flow.id,
-                "type": "packages",
+                "type": "responses",
                 "attributes": {
                     "responses": [[self.timestamp.isoformat(), 1, 1, 1, 1, "test", {}]]
                 },
@@ -547,7 +547,7 @@ class FlowResultViewSetTests(APITestCase):
         data = {
             "data": {
                 "id": self.flow.id,
-                "type": "packages",
+                "type": "responses",
                 "attributes": {
                     "responses": [[self.timestamp.isoformat(), 1, 1, 1, "1", "c", {}]]
                 },
@@ -587,7 +587,7 @@ class FlowResultViewSetTests(APITestCase):
         data = {
             "data": {
                 "id": self.flow.id,
-                "type": "packages",
+                "type": "responses",
                 "attributes": {
                     "responses": [
                         [self.timestamp.isoformat(), i, 1, 1, "1", "a", {}]
@@ -623,7 +623,7 @@ class FlowResultViewSetTests(APITestCase):
         data = {
             "data": {
                 "id": self.flow.id,
-                "type": "packages",
+                "type": "responses",
                 "attributes": {
                     "responses": [[self.timestamp.isoformat(), 1, 1, 1, "1", "a", {}]]
                     * 2

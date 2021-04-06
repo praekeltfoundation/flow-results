@@ -54,7 +54,7 @@ class FlowSerializer(serializers.Serializer):
 
 class FlowResponsesSerializer(serializers.Serializer):
     class DataSerializer(serializers.Serializer):
-        type = serializers.ChoiceField(["packages"])
+        type = serializers.ChoiceField(["responses"])
         id = serializers.CharField()
 
         class AttributesSerializer(serializers.Serializer):
