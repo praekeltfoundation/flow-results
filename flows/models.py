@@ -112,6 +112,7 @@ class FlowResponse(models.Model):
         TIME = 8
 
     question = models.ForeignKey(FlowQuestion, models.CASCADE)
+    flow = models.ForeignKey(Flow, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(default=timezone.now)
     row_id_type = models.PositiveSmallIntegerField(
         choices=Type.choices,
@@ -133,7 +134,7 @@ class FlowResponse(models.Model):
     response_metadata = models.JSONField(blank=True)
 
     class Meta:
-        unique_together = [["question_id", "row_id_value"]]
+        unique_together = [["flow_id", "row_id_value"]]
 
     @staticmethod
     def _deserialize(type_, value):
@@ -262,6 +263,10 @@ class FlowResponse(models.Model):
             language = self.response_metadata["language"]
             if not isinstance(language, str):
                 errors["response_metadata"].append("language must be a string")
+
+    def full_clean(self, exclude=None, validate_unique=True):
+        self.flow_id = self.question.flow_id
+        return super().full_clean(exclude=exclude, validate_unique=validate_unique)
 
     def clean(self):
         errors = defaultdict(list)

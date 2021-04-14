@@ -666,6 +666,7 @@ class FlowResultViewSetTests(APITestCase):
         for i in range(5):
             FlowResponse.objects.create(
                 question=question,
+                flow=self.flow,
                 timestamp=self.timestamp,
                 row_id=i,
                 contact_id=1,
@@ -714,6 +715,7 @@ class FlowResultViewSetTests(APITestCase):
         for i in range(5):
             FlowResponse.objects.create(
                 question=question,
+                flow=self.flow,
                 timestamp=datetime(2021, 2, 3, 4, 5, i, tzinfo=timezone.utc),
                 row_id=i,
                 contact_id=1,
@@ -758,6 +760,7 @@ class FlowResultViewSetTests(APITestCase):
         for i in range(5):
             FlowResponse.objects.create(
                 question=question,
+                flow=self.flow,
                 timestamp=datetime(2021, 2, 3, 4, 5, i, tzinfo=timezone.utc),
                 row_id=i,
                 contact_id=1,
@@ -795,6 +798,7 @@ class FlowResultViewSetTests(APITestCase):
         for i in range(5):
             FlowResponse.objects.create(
                 question=question,
+                flow=self.flow,
                 timestamp=datetime(2021, 2, 3, 4, 5, i, tzinfo=timezone.utc),
                 row_id=i,
                 contact_id=1,
@@ -837,6 +841,7 @@ class FlowResultViewSetTests(APITestCase):
         for i in range(5):
             FlowResponse.objects.create(
                 question=question,
+                flow=self.flow,
                 timestamp=datetime(2021, 2, 3, 4, 5, i, tzinfo=timezone.utc),
                 row_id=f"a{i}",
                 contact_id=1,
@@ -876,6 +881,7 @@ class FlowResultViewSetTests(APITestCase):
         for i in range(5):
             FlowResponse.objects.create(
                 question=question,
+                flow=self.flow,
                 timestamp=datetime(2021, 2, 3, 4, 5, i, tzinfo=timezone.utc),
                 row_id=f"a{i}",
                 contact_id=1,

@@ -278,10 +278,10 @@ class FlowResponseViewSet(viewsets.ViewSet):
                 response_metadata=response_metadata,
             )
             try:
-                # We've pulled question from the database here, so we don't need to
-                # validate it. We also rely on database uniqueness checks instead. Both
-                # result in an extra database call.
-                answer.full_clean(exclude=["question"], validate_unique=False)
+                # We've pulled question and flowfrom the database here, so we don't need
+                # to validate it. We also rely on database uniqueness checks instead.
+                # Both result in an extra database call.
+                answer.full_clean(exclude=["question", "flow"], validate_unique=False)
             except ValidationError as e:
                 errors[i] = flatten_errors(e.error_dict)
                 continue
