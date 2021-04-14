@@ -112,12 +112,13 @@ class FlowResponse(models.Model):
         TIME = 8
 
     question = models.ForeignKey(FlowQuestion, models.CASCADE)
+    flow = models.ForeignKey(Flow, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(default=timezone.now)
     row_id_type = models.PositiveSmallIntegerField(
         choices=Type.choices,
         validators=[MaxValueValidator(Type.INTEGER, "must be string or integer")],
     )
-    row_id_value = models.JSONField()
+    row_id_value = models.CharField(max_length=255)
     contact_id_type = models.PositiveSmallIntegerField(
         choices=Type.choices,
         validators=[MaxValueValidator(Type.INTEGER, "must be string or integer")],
@@ -133,7 +134,7 @@ class FlowResponse(models.Model):
     response_metadata = models.JSONField(blank=True)
 
     class Meta:
-        unique_together = [["question_id", "row_id_value"]]
+        unique_together = [["flow_id", "row_id_value"]]
 
     @staticmethod
     def _deserialize(type_, value):

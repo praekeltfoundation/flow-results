@@ -2,7 +2,6 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db.models import Q
 from django.db.transaction import atomic
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
@@ -183,9 +182,7 @@ class FlowViewSet(viewsets.ViewSet):
         return Response(
             {
                 "links": {
-                    "self": reverse(
-                        "flow-detail", args=[str(flow.id)], request=request
-                    ),
+                    "self": reverse("flow-detail", args=[str(flow.id)], request=request)
                 },
                 "data": {
                     "type": "packages",
@@ -231,7 +228,7 @@ class FlowViewSet(viewsets.ViewSet):
                                 "flowresponse-list",
                                 args=[str(flow.id)],
                                 request=request,
-                            ),
+                            )
                         }
                     }
                 },
@@ -273,6 +270,7 @@ class FlowResponseViewSet(viewsets.ViewSet):
                 continue
             answer = FlowResponse(
                 question=question,
+                flow=flow,
                 timestamp=timestamp,
                 row_id=row_id,
                 contact_id=contact_id,
@@ -281,10 +279,10 @@ class FlowResponseViewSet(viewsets.ViewSet):
                 response_metadata=response_metadata,
             )
             try:
-                # We've pulled question from the database here, so we don't need to
-                # validate it. We also rely on database uniqueness checks instead. Both
-                # result in an extra database call.
-                answer.full_clean(exclude=["question"], validate_unique=False)
+                # We've pulled question and flowfrom the database here, so we don't need
+                # to validate it. We also rely on database uniqueness checks instead.
+                # Both result in an extra database call.
+                answer.full_clean(exclude=["question", "flow"], validate_unique=False)
             except ValidationError as e:
                 errors[i] = flatten_errors(e.error_dict)
                 continue
@@ -343,15 +341,9 @@ class FlowResponseViewSet(viewsets.ViewSet):
         reversed = False
         try:
             after = request.query_params["page[afterCursor]"]
-            # row_id could be int or string, so try both
-            # if they have an int and a string with the same value, then there's not
-            # much we can do, query strings only support ints
-            filter_row_id = Q(row_id_value=after)
-            try:
-                filter_row_id |= Q(row_id_value=int(after))
-            except ValueError:
-                pass
-            after_answer = FlowResponse.objects.get(filter_row_id, question__flow=flow)
+            after_answer = FlowResponse.objects.get(
+                row_id_value=after, question__flow=flow
+            )
             answers = answers.filter(id__gt=after_answer.id)
             answers = answers.order_by("id")
             has_previous = True
@@ -360,12 +352,9 @@ class FlowResponseViewSet(viewsets.ViewSet):
 
         try:
             before = request.query_params["page[beforeCursor]"]
-            filter_row_id = Q(row_id_value=before)
-            try:
-                filter_row_id |= Q(row_id_value=int(before))
-            except ValueError:
-                pass
-            before_answer = FlowResponse.objects.get(filter_row_id, question__flow=flow)
+            before_answer = FlowResponse.objects.get(
+                row_id_value=before, question__flow=flow
+            )
             answers = answers.filter(id__lt=before_answer.id)
             answers = answers.order_by("-id")
             reversed = True
@@ -376,6 +365,7 @@ class FlowResponseViewSet(viewsets.ViewSet):
         answers = answers[: page_size + 1].values_list(
             "timestamp",
             "row_id_value",
+            "row_id_type",
             "contact_id_value",
             "session_id_value",
             "question_id",
@@ -414,13 +404,20 @@ class FlowResponseViewSet(viewsets.ViewSet):
                 "data": {
                     "type": "flow-results-data",
                     "id": flow.id,
-                    "attributes": {"responses": answers},
+                    "attributes": {
+                        "responses": [
+                            [
+                                a[0],
+                                int(a[1])
+                                if a[2] == FlowResponse.Type.INTEGER
+                                else a[1],
+                                *a[3:],
+                            ]
+                            for a in answers
+                        ]
+                    },
                     "relationships": {
-                        "descriptor": {
-                            "links": {
-                                "self": request.build_absolute_uri(),
-                            }
-                        },
+                        "descriptor": {"links": {"self": request.build_absolute_uri()}},
                         "links": {
                             "self": request.build_absolute_uri(),
                             "next": next_,
