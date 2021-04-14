@@ -264,10 +264,6 @@ class FlowResponse(models.Model):
             if not isinstance(language, str):
                 errors["response_metadata"].append("language must be a string")
 
-    def full_clean(self, exclude=None, validate_unique=True):
-        self.flow_id = self.question.flow_id
-        return super().full_clean(exclude=exclude, validate_unique=validate_unique)
-
     def clean(self):
         errors = defaultdict(list)
         type_ = self.question.type

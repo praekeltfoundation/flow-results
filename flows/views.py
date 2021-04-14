@@ -270,6 +270,7 @@ class FlowResponseViewSet(viewsets.ViewSet):
                 continue
             answer = FlowResponse(
                 question=question,
+                flow=flow,
                 timestamp=timestamp,
                 row_id=row_id,
                 contact_id=contact_id,

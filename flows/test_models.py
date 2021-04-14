@@ -51,8 +51,7 @@ class FlowQuestionTests(TestCase):
         with self.assertRaises(ValidationError) as e:
             q.full_clean()
         self.assertEqual(
-            e.exception.message_dict,
-            {"type_options": ["choices must be an array"]},
+            e.exception.message_dict, {"type_options": ["choices must be an array"]}
         )
 
     def test_clean_select_many(self):
@@ -76,8 +75,7 @@ class FlowQuestionTests(TestCase):
         with self.assertRaises(ValidationError) as e:
             q.full_clean()
         self.assertEqual(
-            e.exception.message_dict,
-            {"type_options": ["choices must be an array"]},
+            e.exception.message_dict, {"type_options": ["choices must be an array"]}
         )
 
         q.type_options["choices"] = ["choice1", "choice2"]
@@ -97,8 +95,7 @@ class FlowQuestionTests(TestCase):
         with self.assertRaises(ValidationError) as e:
             q.full_clean()
         self.assertEqual(
-            e.exception.message_dict,
-            {"type_options": ["range must be an array"]},
+            e.exception.message_dict, {"type_options": ["range must be an array"]}
         )
 
         q.type_options["range"] = []
@@ -123,8 +120,11 @@ class FlowQuestionTests(TestCase):
 
 class FlowResponseTests(TestCase):
     def create_response(self):
+        flow = Flow.objects.create()
+        question = FlowQuestion.objects.create(flow=flow)
         return FlowResponse(
-            question=FlowQuestion.objects.create(flow=Flow.objects.create()),
+            question=question,
+            flow=flow,
             session_id=1,
             row_id=1,
             contact_id=1,
@@ -148,6 +148,7 @@ class FlowResponseTests(TestCase):
         question = FlowQuestion.objects.create(flow=Flow.objects.create())
         response = FlowResponse(
             question=question,
+            flow=question.flow,
             row_id=["1"],
             contact_id=1,
             session_id=1,
@@ -176,6 +177,7 @@ class FlowResponseTests(TestCase):
         question = FlowQuestion.objects.create(flow=Flow.objects.create())
         response = FlowResponse(
             question=question,
+            flow=question.flow,
             contact_id=["1"],
             row_id=1,
             session_id=1,
@@ -204,6 +206,7 @@ class FlowResponseTests(TestCase):
         question = FlowQuestion.objects.create(flow=Flow.objects.create())
         response = FlowResponse(
             question=question,
+            flow=question.flow,
             session_id=["1"],
             row_id=1,
             contact_id=1,
@@ -225,11 +228,7 @@ class FlowResponseTests(TestCase):
             (7, FlowResponse.Type.INTEGER, 7),
             (["a", "b", "c"], FlowResponse.Type.ARRAY_OF_STRING, ["a", "b", "c"]),
             (1.5, FlowResponse.Type.FLOAT, 1.5),
-            (
-                URL("https://example.org"),
-                FlowResponse.Type.URL,
-                "https://example.org",
-            ),
+            (URL("https://example.org"), FlowResponse.Type.URL, "https://example.org"),
             ([1.1, 2.2, 3.3], FlowResponse.Type.ARRAY_OF_FLOAT, [1.1, 2.2, 3.3]),
             (
                 datetime(2021, 2, 3, 4, 5, 6, tzinfo=timezone.utc),
@@ -473,10 +472,7 @@ class FlowResponseTests(TestCase):
         response.response = "invalid"
         with self.assertRaises(ValidationError) as e:
             response.full_clean()
-        self.assertEqual(
-            e.exception.message_dict,
-            {"response": ["must be an array"]},
-        )
+        self.assertEqual(e.exception.message_dict, {"response": ["must be an array"]})
 
         response.response = ["a"]
         with self.assertRaises(ValidationError) as e:
@@ -505,8 +501,7 @@ class FlowResponseTests(TestCase):
         with self.assertRaises(ValidationError) as e:
             response.full_clean()
         self.assertEqual(
-            e.exception.message_dict,
-            {"response": ["must be an RFC 3339 date-time"]},
+            e.exception.message_dict, {"response": ["must be an RFC 3339 date-time"]}
         )
 
         response.response = "2021-02-03T04:05:06.123456+00:00"
@@ -523,8 +518,7 @@ class FlowResponseTests(TestCase):
         with self.assertRaises(ValidationError) as e:
             response.full_clean()
         self.assertEqual(
-            e.exception.message_dict,
-            {"response": ["must be an RFC 3339 date"]},
+            e.exception.message_dict, {"response": ["must be an RFC 3339 date"]}
         )
 
         response.response = "2021-02-03"
@@ -541,8 +535,7 @@ class FlowResponseTests(TestCase):
         with self.assertRaises(ValidationError) as e:
             response.full_clean()
         self.assertEqual(
-            e.exception.message_dict,
-            {"response": ["must be an RFC 3339 time"]},
+            e.exception.message_dict, {"response": ["must be an RFC 3339 time"]}
         )
 
         response.response = "04:05"
