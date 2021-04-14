@@ -117,7 +117,7 @@ class FlowResponse(models.Model):
         choices=Type.choices,
         validators=[MaxValueValidator(Type.INTEGER, "must be string or integer")],
     )
-    row_id_value = models.JSONField()
+    row_id_value = models.CharField(max_length=255)
     contact_id_type = models.PositiveSmallIntegerField(
         choices=Type.choices,
         validators=[MaxValueValidator(Type.INTEGER, "must be string or integer")],
