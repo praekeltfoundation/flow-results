@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
             preserve_default=False,
         ),
         migrations.RunPython(set_flow, reverse_noop),
-        migrations.AddField(
+        migrations.AlterField(
             model_name="flowresponse",
             name="flow",
             field=models.ForeignKey(
