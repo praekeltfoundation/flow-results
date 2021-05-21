@@ -368,7 +368,7 @@ class FlowResponseViewSet(viewsets.ViewSet):
             "row_id_type",
             "contact_id_value",
             "session_id_value",
-            "question_id",
+            "question__id",
             "response_value",
             "response_metadata",
         )
