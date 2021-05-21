@@ -686,7 +686,7 @@ class FlowResultViewSetTests(APITestCase):
                     "id": str(self.flow.id),
                     "attributes": {
                         "responses": [
-                            ["2021-02-03T04:05:06.000007Z", i, 1, 1, 1, "a", {}]
+                            ["2021-02-03T04:05:06.000007Z", i, 1, 1, "1", "a", {}]
                             for i in range(5)
                         ]
                     },
