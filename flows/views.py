@@ -312,7 +312,7 @@ class FlowResponseViewSet(viewsets.ViewSet):
         except (Flow.DoesNotExist, ValidationError):
             raise NotFound()
 
-        answers = FlowResponse.objects.filter(question__flow=flow).order_by("id")
+        answers = FlowResponse.objects.filter(flow=flow).order_by("id")
 
         try:
             start_filter = request.query_params["filter[start-timestamp]"]
@@ -341,9 +341,7 @@ class FlowResponseViewSet(viewsets.ViewSet):
         reversed = False
         try:
             after = request.query_params["page[afterCursor]"]
-            after_answer = FlowResponse.objects.get(
-                row_id_value=after, question__flow=flow
-            )
+            after_answer = FlowResponse.objects.get(row_id_value=after, flow=flow)
             answers = answers.filter(id__gt=after_answer.id)
             answers = answers.order_by("id")
             has_previous = True
@@ -352,9 +350,7 @@ class FlowResponseViewSet(viewsets.ViewSet):
 
         try:
             before = request.query_params["page[beforeCursor]"]
-            before_answer = FlowResponse.objects.get(
-                row_id_value=before, question__flow=flow
-            )
+            before_answer = FlowResponse.objects.get(row_id_value=before, flow=flow)
             answers = answers.filter(id__lt=before_answer.id)
             answers = answers.order_by("-id")
             reversed = True
