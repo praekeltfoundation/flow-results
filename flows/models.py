@@ -135,6 +135,7 @@ class FlowResponse(models.Model):
 
     class Meta:
         unique_together = [["flow_id", "row_id_value"]]
+        indexes = [models.Index(fields=["flow_id", "timestamp"])]
 
     @staticmethod
     def _deserialize(type_, value):

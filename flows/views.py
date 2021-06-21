@@ -312,7 +312,7 @@ class FlowResponseViewSet(viewsets.ViewSet):
         except (Flow.DoesNotExist, ValidationError):
             raise NotFound()
 
-        answers = FlowResponse.objects.filter(question__flow=flow).order_by("id")
+        answers = FlowResponse.objects.filter(flow=flow).order_by("timestamp")
 
         try:
             start_filter = request.query_params["filter[start-timestamp]"]
@@ -341,22 +341,18 @@ class FlowResponseViewSet(viewsets.ViewSet):
         reversed = False
         try:
             after = request.query_params["page[afterCursor]"]
-            after_answer = FlowResponse.objects.get(
-                row_id_value=after, question__flow=flow
-            )
-            answers = answers.filter(id__gt=after_answer.id)
-            answers = answers.order_by("id")
+            after_answer = FlowResponse.objects.get(row_id_value=after, flow=flow)
+            answers = answers.filter(timestamp__gt=after_answer.timestamp)
+            answers = answers.order_by("timestamp")
             has_previous = True
         except (KeyError, FlowResponse.DoesNotExist):
             pass
 
         try:
             before = request.query_params["page[beforeCursor]"]
-            before_answer = FlowResponse.objects.get(
-                row_id_value=before, question__flow=flow
-            )
-            answers = answers.filter(id__lt=before_answer.id)
-            answers = answers.order_by("-id")
+            before_answer = FlowResponse.objects.get(row_id_value=before, flow=flow)
+            answers = answers.filter(timestamp__lt=before_answer.timestamp)
+            answers = answers.order_by("-timestamp")
             reversed = True
             has_next = True
         except (KeyError, FlowResponse.DoesNotExist):
