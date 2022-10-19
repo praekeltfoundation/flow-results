@@ -148,3 +148,5 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.MultiPartParser",
     ],
 }
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
