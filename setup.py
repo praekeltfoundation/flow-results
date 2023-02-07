@@ -35,7 +35,7 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
     ],
     install_requires=[
-        "django==3.2.16",
+        "django==3.2.17",
         "django-environ==0.4.5",
         "djangorestframework==3.12.2",
         "drf-extensions==0.7.0",
