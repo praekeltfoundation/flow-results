@@ -21,7 +21,7 @@ There is a [docker image](https://hub.docker.com/r/praekeltfoundation/flow-resul
 [See also this README](https://github.com/praekeltfoundation/docker-django-bootstrap#configuring-gunicorn) for more configuration options for tuning the config
 
 ## Development
-Requires Python 3.6 or greater
+Requires Python 3.7 or greater
 
 Install dependencies:
 ```bash
