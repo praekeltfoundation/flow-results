@@ -1,4 +1,4 @@
-FROM praekeltfoundation/django-bootstrap:py3.7-stretch
+FROM ghcr.io/praekeltfoundation/docker-django-bootstrap-nw:py3.9-bullseye
 
 COPY . /app
 RUN pip install -e .
