@@ -42,7 +42,7 @@ setup(
         "django-health-check==3.16.3",
         "django-prometheus==2.1.0",
         "psycopg2-binary==2.8.6",
-        "sentry-sdk==1.0.0",
+        "sentry-sdk==1.14.0",
     ],
     extras_require={
         "dev": [
