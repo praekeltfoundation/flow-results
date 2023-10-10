@@ -10,8 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
+import dj_database_url
 import environ
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
@@ -86,8 +88,15 @@ WSGI_APPLICATION = "flow_results.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
-DATABASES = {"default": env.db("DATABASE_URL", "sqlite:///db.sqlite3")}
-
+DATABASES = {
+    "default": dj_database_url.config(
+        default=os.environ.get(
+            "FLOW_RESULTS_DATABASE",
+            "postgres://postgres:postgres@localhost/flow_results",
+        ),
+        engine="django.db.backends.postgresql",
+    )
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
