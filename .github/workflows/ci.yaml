@@ -16,8 +16,9 @@ jobs:
           POSTGRES_DB: flow_results
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
+          command: -p 5000
         ports:
-          - 5432:5432
+          - 5000:5432
     env:
       DATABASE_URL: postgres://postgres:postgres@db/flow_results
     name: Python ${{ matrix.python-version }} tests
