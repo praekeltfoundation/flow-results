@@ -19,7 +19,7 @@ jobs:
         ports:
           - 5432:5432
     env:
-      FLOW_RESULTS_DATABASE: postgres://postgres:postgres@localhost:5432/flow_results
+      FLOW_RESULTS_DATABASE: postgres://postgres:postgres@postgres/flow_results
     name: Python ${{ matrix.python-version }} tests
     steps:
       - uses: actions/checkout@v2
