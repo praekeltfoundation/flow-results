@@ -92,7 +92,7 @@ DATABASES = {
     "default": dj_database_url.config(
         default=os.environ.get(
             "DATABASE_URL",
-            "postgres://postgres@db/flow_results",
+            "postgres://postgres@postgres/flow_results",
         ),
         engine="django.db.backends.postgresql",
     )
