@@ -8,6 +8,18 @@ jobs:
     strategy:
       matrix:
         python-version: [ '3.7', '3.8', '3.9', '3.10' ]
+        postgres_version: ['12', '13', '14']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres_version }}
+        env:
+          POSTGRES_DB: flow_results
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+    env:
+      RP_SIDEKICK_DATABASE: postgres://postgres:postgres@localhost/flow_results
     name: Python ${{ matrix.python-version }} tests
     steps:
       - uses: actions/checkout@v2

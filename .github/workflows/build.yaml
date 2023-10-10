@@ -10,20 +10,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-      strategy:
-        matrix:
-          postgres_version: ['12', '13', '14']
-      services:
-        postgres:
-          image: postgres:${{ matrix.postgres_version }}
-          env:
-            POSTGRES_DB: flow_results
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-          ports:
-            - 5432:5432
-      env:
-        FLOW_RESULTS_DATABASE: postgres://postgres:postgres@localhost:5432/flow_results
     steps:
       - name: checkout
         uses: actions/checkout@v3
