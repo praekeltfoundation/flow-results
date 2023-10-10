@@ -15,7 +15,7 @@ There is a [docker image](https://hub.docker.com/r/praekeltfoundation/flow-resul
 | Variable      | Description |
 | ----------    | ----------- |
 | SECRET_KEY    | The django secret key, set to a long, random sequence of characters |
-| DATABASE_URL  | Where to find the database. Set to `sqlite:////path/to/volume/db.sqlite` for a mounted volume sqlite database, or `postgresql://host:port/db` for a postgresql database |
+| DATABASE_URL  | Where to find the database. Set to `postgresql://host:port/db` for a postgresql database |
 | ALLOWED_HOSTS | Comma separated list of hostnames for this service, eg. `host1.example.org,host2.example.org` |
 
 [See also this README](https://github.com/praekeltfoundation/docker-django-bootstrap#configuring-gunicorn) for more configuration options for tuning the config
@@ -26,6 +26,11 @@ Requires Python 3.7 or greater
 Install dependencies:
 ```bash
 pip install -e .[dev]
+```
+
+Create DB
+```bash
+createdb flow_results
 ```
 
 Auto format and run tests:

@@ -3,7 +3,7 @@ FROM ghcr.io/praekeltfoundation/docker-django-bootstrap-nw:py3.9-bullseye
 COPY . /app
 RUN pip install -e .
 
-RUN python manage.py collectstatic --noinput
+RUN DJANGO_SETTINGS_MODULE=flow_results.testsettings python manage.py collectstatic --noinput
 ENV DJANGO_SETTINGS_MODULE flow_results.settings
 ENV DEBUG false
 
