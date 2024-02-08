@@ -34,7 +34,7 @@ class DeleteHistoricalRecordsTests(TestCase):
             session_id_value={},
             response_type=FlowResponse.Type.STRING,
             response_value={},
-            response_metadata={}
+            response_metadata={},
         )
         record.timestamp = timestamp
         record.save()
