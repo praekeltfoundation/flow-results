@@ -1,4 +1,4 @@
-from django.urls import include, path
+from django.urls import include, re_path
 from rest_framework_extensions.routers import ExtendedDefaultRouter
 
 from flows.views import FlowResponseViewSet, FlowViewSet
@@ -13,5 +13,5 @@ flow_router.register(
 )
 
 urlpatterns = [
-    path("api/v1/", include(v1router.urls)),
+    re_path("api/v1/", include(v1router.urls)),
 ]
