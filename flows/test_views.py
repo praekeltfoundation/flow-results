@@ -692,7 +692,7 @@ class FlowResultViewSetTests(APITestCase):
                     },
                     "relationships": {
                         "descriptor": {
-                            "links": {"self": f"http: //testserver{self.list_url}"}
+                            "links": {"self": f"http://testserver{self.list_url}"}
                         },
                         "links": {
                             "self": f"http: //testserver{self.list_url}",
