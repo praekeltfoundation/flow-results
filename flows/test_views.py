@@ -695,7 +695,7 @@ class FlowResultViewSetTests(APITestCase):
                             "links": {"self": f"http://testserver{self.list_url}"}
                         },
                         "links": {
-                            "self": f"http: //testserver{self.list_url}",
+                            "self": f"http://testserver{self.list_url}",
                             "next": None,
                             "previous": None,
                         },
