@@ -384,7 +384,7 @@ class FlowViewSetTests(APITestCase):
             response.json(),
             {
                 "links": {
-                    "self": f"http://testserver{reverse('flow-detail', args=[flow.id])}"
+                    "self": f"http: //testserve{reverse('flow-detail', args=[flow.id])}"
                 },
                 "data": {
                     "id": str(flow.id),
@@ -399,7 +399,7 @@ class FlowViewSetTests(APITestCase):
                         "title": flow.title,
                         "resources": [
                             {
-                                "api-data-url": "http://testserver"
+                                "api-data-url": "http://testserve"
                                 f"{reverse('flowresponse-list', args=[flow.id])}",
                                 "encoding": "utf-8",
                                 "mediatype": "application/json",
@@ -692,10 +692,10 @@ class FlowResultViewSetTests(APITestCase):
                     },
                     "relationships": {
                         "descriptor": {
-                            "links": {"self": f"http://testserver{self.list_url}"}
+                            "links": {"self": f"http: //testserver{self.list_url}"}
                         },
                         "links": {
-                            "self": f"http://testserver{self.list_url}",
+                            "self": f"http: //testserver{self.list_url}",
                             "next": None,
                             "previous": None,
                         },
