@@ -326,7 +326,7 @@ class FlowViewSetTests(APITestCase):
                 "links": {
                     "next": None,
                     "previous": None,
-                    "self": "http: //testserver/api/v1/flow-results/packages/",
+                    "self": "http://testserver/api/v1/flow-results/packages/",
                 },
                 "data": [
                     {
@@ -384,7 +384,7 @@ class FlowViewSetTests(APITestCase):
             response.json(),
             {
                 "links": {
-                    "self": f"http: //testserve{reverse('flow-detail', args=[flow.id])}"
+                    "self": f"http://testserver{reverse('flow-detail', args=[flow.id])}"
                 },
                 "data": {
                     "id": str(flow.id),
@@ -399,7 +399,7 @@ class FlowViewSetTests(APITestCase):
                         "title": flow.title,
                         "resources": [
                             {
-                                "api-data-url": "http://testserve"
+                                "api-data-url": "http://testserver"
                                 f"{reverse('flowresponse-list', args=[flow.id])}",
                                 "encoding": "utf-8",
                                 "mediatype": "application/json",
@@ -427,7 +427,7 @@ class FlowViewSetTests(APITestCase):
                 "relationships": {
                     "responses": {
                         "links": {
-                            "related": "http://testserve"
+                            "related": "http://testserver"
                             f"{reverse('flowresponse-list', args=[flow.id])}"
                         }
                     }
