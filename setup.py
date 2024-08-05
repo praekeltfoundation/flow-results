@@ -46,6 +46,7 @@ setup(
         "sentry-sdk==2.8.0",
         "dj-database-url==2.2.0",
         "python-dateutil==2.8.2",
+        "setuptools==72.1.0",
     ],
     extras_require={
         "dev": [
