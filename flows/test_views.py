@@ -326,7 +326,7 @@ class FlowViewSetTests(APITestCase):
                 "links": {
                     "next": None,
                     "previous": None,
-                    "self": "http://testserver/api/v1/flow-results/packages/",
+                    "self": "http: //testserver/api/v1/flow-results/packages/",
                 },
                 "data": [
                     {

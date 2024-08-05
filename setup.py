@@ -52,7 +52,7 @@ setup(
         "dev": [
             "black==22.10.0",
             "isort==5.7.0",
-            "flake8==5.0.4",
+            "flake8==7.1.1",
             "coverage==5.5",
         ],
     },
