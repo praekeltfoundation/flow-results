@@ -19,7 +19,7 @@ setup(
         "Bug Tracker": "https://github.com/praekeltfoundation/flow-results/issues",
         "Documentation": "https://floip.gitbook.io/flow-results-specification/",
     },
-    python_requires=">=3.10",
+    python_requires=">=3.9",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Framework :: Django :: 4.2",
