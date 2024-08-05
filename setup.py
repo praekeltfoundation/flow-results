@@ -44,7 +44,7 @@ setup(
         "django-prometheus==2.1.0",
         "psycopg2-binary==2.9.9",
         "sentry-sdk==2.8.0",
-        "dj-database-url==2.1.0",
+        "dj-database-url==2.2.0",
         "python-dateutil==2.8.2",
     ],
     extras_require={
