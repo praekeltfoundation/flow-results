@@ -14,13 +14,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import include, re_path
+from django.urls import include, path
 
 from flows import urls as flow_urls
 
 urlpatterns = [
-    re_path("admin/", admin.site.urls),
-    re_path("health/", include("health_check.urls")),
-    # re_path("", include("django_prometheus.urls")),
-    re_path("", include(flow_urls.urlpatterns)),
+    path("admin/", admin.site.urls),
+    path("health/", include("health_check.urls")),
+    path("", include("django_prometheus.urls")),
+    path("", include(flow_urls.urlpatterns)),
 ]

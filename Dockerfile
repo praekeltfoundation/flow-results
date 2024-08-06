@@ -4,8 +4,9 @@ COPY . /app
 RUN pip install -e .
 
 RUN DJANGO_SETTINGS_MODULE=flow_results.testsettings python manage.py collectstatic --noinput
-ENV DJANGO_SETTINGS_MODULE flow_results.settings
-ENV DEBUG false
+RUN DJANGO_SETTINGS_MODULE=flow_results.testsettings python manage.py makemigrations --dry-run | grep 'No changes detected' || (echo 'There are changes which require migrations.')
+ENV DJANGO_SETTINGS_MODULE=flow_results.settings
+ENV DEBUG=false
 
 CMD [\
     "flow_results.wsgi:application",\
