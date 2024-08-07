@@ -36,6 +36,6 @@ jobs:
           flake8
       - name: Test
         run: |
-          DJANGO_SETTINGS_MODULE=flow_results.testsettings python manage.py makemigrations --dry-run | grep 'No changes detected' || (echo 'There are changes which require migrations.' && exit 1)
+          DJANGO_SETTINGS_MODULE=flow_results.testsettings python manage.py makemigrations --check | grep 'No changes detected' || (echo 'There are changes which require migrations.' && exit 1)
           coverage run manage.py test
           coverage report
