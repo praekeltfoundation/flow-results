@@ -40,7 +40,7 @@ setup(
         "django-environ==0.4.5",
         "djangorestframework==3.15.2",
         "drf-extensions==0.7.0",
-        "django-health-check==3.16.3",
+        "django-health-check==3.18.3",
         "django-prometheus==2.3.1",
         "psycopg2-binary==2.9.9",
         "sentry-sdk==2.8.0",
