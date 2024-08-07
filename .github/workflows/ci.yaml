@@ -36,5 +36,6 @@ jobs:
           flake8
       - name: Test
         run: |
+          python manage.py makemigrations --check
           coverage run manage.py test
           coverage report
