@@ -4,8 +4,8 @@ COPY . /app
 RUN pip install -e .
 
 RUN DJANGO_SETTINGS_MODULE=flow_results.testsettings python manage.py collectstatic --noinput
-ENV DJANGO_SETTINGS_MODULE flow_results.settings
-ENV DEBUG false
+ENV DJANGO_SETTINGS_MODULE=flow_results.settings
+ENV DEBUG=false
 
 CMD [\
     "flow_results.wsgi:application",\

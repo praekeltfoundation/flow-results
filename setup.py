@@ -41,7 +41,7 @@ setup(
         "djangorestframework==3.15.2",
         "drf-extensions==0.7.0",
         "django-health-check==3.16.3",
-        "django-prometheus==2.1.0",
+        "django-prometheus==2.3.1",
         "psycopg2-binary==2.9.9",
         "sentry-sdk==2.8.0",
         "dj-database-url==2.2.0",
