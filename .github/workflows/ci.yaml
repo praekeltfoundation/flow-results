@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.12']
-        postgres_version: ['14']
+        postgres_version: ['14','16']
     services:
       db:
         image: postgres:${{ matrix.postgres_version }}
